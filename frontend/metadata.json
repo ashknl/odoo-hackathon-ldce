@@ -1,0 +1,6 @@
+{
+  "name": "GlobeTrotter - Personalized Travel Planning",
+  "description": "Empowering personalized travel planning with multi-city itineraries, automatic budget estimation, activity discovery, and interactive visual timelines.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
