@@ -25,7 +25,7 @@ import {
   USER_PREVIOUS_TRIPS,
 } from '../data/homeData';
 
-const BASE_URL = '/api';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // Helper to get bearer token from localStorage
 export const getAuthToken = (): string | null => {
@@ -95,8 +95,12 @@ export const authApi = {
       });
       if (res.token) setAuthToken(res.token);
       return res;
-    } catch {
-      // Mock fallback for offline dev
+    } catch (err: any) {
+      // If server responded with a error message (like 409 email exists or 400 validation), throw it so UI displays it
+      if (err.message && !err.message.includes('Failed to fetch')) {
+        throw err;
+      }
+      // Offline / network fallback
       const mockUser: User = {
         id: `usr-${Date.now()}`,
         name: data.name,
@@ -121,7 +125,10 @@ export const authApi = {
       });
       if (res.token) setAuthToken(res.token);
       return res;
-    } catch {
+    } catch (err: any) {
+      if (err.message && !err.message.includes('Failed to fetch')) {
+        throw err;
+      }
       const mockUser: User = {
         ...CURRENT_HOME_USER,
         email: data.email,
