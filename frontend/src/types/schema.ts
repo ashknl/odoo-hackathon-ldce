@@ -124,18 +124,24 @@ export interface TripStop {
 // 5. Planned Activities Model (table: `planned_activities` - OpenTripMap snapshotted)
 export interface PlannedActivity {
   id: string; // UUID PK
-  trip_stop_id: string; // UUID FK -> trip_stops.id
+  trip_stop_id?: string; // UUID FK -> trip_stops.id
   tripStopId?: string;
+  stop_id?: string; // UI alias
+  stopId?: string;
   otm_place_id?: string; // VARCHAR (soft ref to OpenTripMap POI)
   otmPlaceId?: string;
-  name: string; // snapshotted place name
-  type: string; // snapshotted category (e.g. museum, hiking, nature)
+  name?: string; // snapshotted place name
+  title?: string; // UI alias
+  type?: string; // snapshotted category (e.g. museum, hiking, nature)
+  category?: string; // UI alias
   image?: string; // snapshotted preview URL
+  preview_url?: string; // UI alias
   latitude?: number;
   longitude?: number;
-  date: string; // DATE (YYYY-MM-DD)
+  date?: string; // DATE (YYYY-MM-DD)
   start_time?: string; // TIME (HH:MM)
   startTime?: string;
+  scheduled_time?: string; // UI alias
   end_time?: string; // TIME (HH:MM)
   endTime?: string;
   planned_cost?: number; // DECIMAL

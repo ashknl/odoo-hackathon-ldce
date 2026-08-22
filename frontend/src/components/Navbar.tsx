@@ -10,7 +10,9 @@ import {
   User,
   Search,
   LogOut,
-  ShieldCheck
+  ShieldCheck,
+  PieChart,
+  Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile } from './AuthModal';
@@ -22,8 +24,8 @@ interface NavbarProps {
   onOpenAuth: (mode: 'signin' | 'signup') => void;
   currentUser?: UserProfile | null;
   onLogout?: () => void;
-  activeView?: 'landing' | 'home';
-  onViewChange?: (view: 'landing' | 'home') => void;
+  activeView?: 'landing' | 'home' | 'create-trip' | 'itinerary-builder' | 'my-trips' | 'profile' | 'search' | 'budget-view' | 'community' | 'calendar';
+  onViewChange?: (view: 'landing' | 'home' | 'create-trip' | 'itinerary-builder' | 'my-trips' | 'profile' | 'search' | 'budget-view' | 'community' | 'calendar') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -94,6 +96,72 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Sparkles className="w-3.5 h-3.5 text-sky-200" />
               <span>+ Plan New Trip</span>
+            </button>
+            <button
+              onClick={() => onViewChange?.('itinerary-builder')}
+              className={`text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeView === 'itinerary-builder'
+                  ? 'bg-[#0284c7] text-white shadow-sm ring-2 ring-sky-200'
+                  : 'text-slate-600 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200'
+              }`}
+            >
+              <Ticket className="w-3.5 h-3.5 text-sky-200" />
+              <span>Build Itinerary (Screen 5)</span>
+            </button>
+            <button
+              onClick={() => onViewChange?.('my-trips')}
+              className={`text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeView === 'my-trips'
+                  ? 'bg-[#0284c7] text-white shadow-sm ring-2 ring-sky-200'
+                  : 'text-slate-600 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200'
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5 text-sky-200" />
+              <span>My Trips (Screen 6)</span>
+            </button>
+            <button
+              onClick={() => onViewChange?.('calendar')}
+              className={`text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeView === 'calendar'
+                  ? 'bg-[#0284c7] text-white shadow-sm ring-2 ring-sky-200'
+                  : 'text-slate-600 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5 text-sky-200" />
+              <span>Calendar (Screen 11)</span>
+            </button>
+            <button
+              onClick={() => onViewChange?.('community')}
+              className={`text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeView === 'community'
+                  ? 'bg-[#0284c7] text-white shadow-sm ring-2 ring-sky-200'
+                  : 'text-slate-600 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200'
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5 text-sky-200" />
+              <span>Community (Screen 10)</span>
+            </button>
+            <button
+              onClick={() => onViewChange?.('search')}
+              className={`text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeView === 'search'
+                  ? 'bg-[#0284c7] text-white shadow-sm ring-2 ring-sky-200'
+                  : 'text-slate-600 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200'
+              }`}
+            >
+              <Search className="w-3.5 h-3.5 text-sky-200" />
+              <span>Search (Screen 8)</span>
+            </button>
+            <button
+              onClick={() => onViewChange?.('budget-view')}
+              className={`text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeView === 'budget-view'
+                  ? 'bg-[#0284c7] text-white shadow-sm ring-2 ring-sky-200'
+                  : 'text-slate-600 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200'
+              }`}
+            >
+              <PieChart className="w-3.5 h-3.5 text-sky-200" />
+              <span>Budget View (Screen 9)</span>
             </button>
             <button
               onClick={() => onViewChange?.('landing')}
@@ -176,12 +244,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <button
                         onClick={() => {
                           setUserMenuOpen(false);
-                          onOpenAuth('signup');
+                          onViewChange?.('profile');
                         }}
                         className="w-full px-2.5 py-1.5 rounded-lg text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
                       >
-                        <User className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Edit Profile</span>
+                        <User className="w-3.5 h-3.5 text-[#0284c7]" />
+                        <span>View Profile (Screen 7)</span>
                       </button>
 
                       {onLogout && (

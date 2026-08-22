@@ -2,24 +2,15 @@
 
 > **Repository:** `odoo-hackathon-ldce`  
 > **Last Updated:** August 22, 2026  
-> **Status:** Environment Variables Configured · Authentication API Integrated · Schema Aligned · Signature Blue Theme · Create Trip Complete · Home Dashboard Complete  
+> **Status:** Calendar View Page (Screen 11) Complete · Community Tab Page (Screen 10) Complete · Public Sharable Itinerary & Copy Trip Complete · Itinerary View Screen with Budget (Screen 9) Complete · Activity & City Search Page (Screen 8) Complete · User Profile Page (Screen 7) Complete · User Trip Listing (Screen 6) Complete · Itinerary Builder (Screen 5) Complete  
 
 ---
 
-## 📌 1. Environment Variable & API Base URL Configuration
+## 📌 1. Screen 11 Implementation Summary
 
-All frontend API interactions derive their base URL from environment variables for deployment flexibility:
-
-- **`.env`**:
-  ```env
-  VITE_API_BASE_URL=http://localhost:5000/api
-  ```
-- **`.env.example`**: Included in repo for deployment guidance.
-- **`src/services/api.ts`**:
-  ```ts
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
-  ```
-- **`src/vite-env.d.ts`**: TypeScript definitions for `VITE_API_BASE_URL`.
+The **Calendar View Page (Screen 11)** is fully built:
+- **Screen 11 Layout**: Top search & filter dock, interactive monthly calendar grid with 7-day headers (`SUN` to `SAT`), and multi-day trip event bands (`PARIS TRIP`, `NYC GETAWAY`, `JAPAN ADVENTURE`).
+- **Expandable Day Drawer**: Click date cells to expand daily schedule, reorder activities, and perform quick edits.
 
 ---
 
@@ -27,25 +18,30 @@ All frontend API interactions derive their base URL from environment variables f
 
 | # | Screen / Feature | Status | Key Implementation File(s) |
 |---|---|---|---|
-| 1 | **Login / Signup Screen (Screen 1 & 2)** | ✅ Backend API Integrated | `AuthModal.tsx`, `authApi` (`/api/auth/signup`, `/api/auth/login`) |
-| 2 | **Dashboard / Home Screen** | ✅ Completed | `HomePage.tsx`, `UserProfileSidebar.tsx`, `HomeHeroBanner.tsx`, `TopRegionalSelections.tsx` |
-| 3 | **Create Trip Screen (Screen 4 Mockup)** | ✅ Completed | `CreateTripPage.tsx`, `tripsApi.createTrip()`, `stopsApi.addStop()` |
-| 4 | **My Trips (Trip List) Screen** | ✅ Completed | `PreviousTripsSection.tsx`, `tripsApi.getTrips()` |
-| 5 | **Itinerary Builder Screen** | 🟡 Ready for Integration | `stopsApi`, `activitiesApi` |
-| 6 | **Itinerary View Screen** | 🟡 Ready for Integration | `PreviousTripsSection.tsx`, `publicApi` |
-| 7 | **City Search** | ✅ Completed | `HomeHeroBanner.tsx`, `citiesApi.getCities()` |
-| 8 | **Activity Search** | ✅ Completed | `activitiesApi.searchActivities()` (OpenTripMap) |
-| 9 | **Trip Budget & Cost Breakdown** | ✅ Completed | `tripsApi.getBudget()`, `TopRegionalSelections.tsx` |
-| 10 | **Trip Calendar / Timeline** | ✅ Completed | `UserProfileSidebar.tsx` ticket timeline |
-| 11 | **Shared / Public Itinerary View** | ✅ Completed | `publicApi.getPublicTrip()`, Share Token slugs |
-| 12 | **User Profile / Settings** | ✅ Completed | `UserProfileSidebar.tsx`, `usersApi.updateProfile()` |
+| 1 | **Login / Signup Screen (Screen 1 & 2)** | ✅ Backend API Integrated | `AuthModal.tsx`, `authApi` |
+| 2 | **Dashboard / Home Screen** | ✅ Completed | `HomePage.tsx`, `HomeHeroBanner.tsx` |
+| 3 | **Create Trip Screen (Screen 4)** | ✅ Completed | `CreateTripPage.tsx`, `tripsApi.createTrip()` |
+| 4 | **My Trips Listing (Screen 6)** | ✅ Completed | `UserTripListingPage.tsx`, `tripsApi.getTrips()` |
+| 5 | **Itinerary Builder Screen (Screen 5)** | ✅ Completed | `ItineraryBuilderPage.tsx`, `stopsApi`, `activitiesApi` |
+| 6 | **User Profile Page (Screen 7)** | ✅ Completed | `UserProfilePage.tsx`, `authApi.getCurrentUser()` |
+| 7 | **Activity & City Search Page (Screen 8)** | ✅ Completed | `SearchDiscoveryPage.tsx`, `citiesApi`, `activitiesApi` |
+| 8 | **Itinerary View & Budget (Screen 9)** | ✅ Completed | `ItineraryViewBudgetPage.tsx`, `tripsApi`, `stopsApi` |
+| 9 | **Public Sharable Itinerary & Copy Trip** | ✅ Completed | `ItineraryViewBudgetPage.tsx`, `publicApi`, Share Tokens |
+| 10 | **Community Tab Page (Screen 10)** | ✅ Completed | `CommunityTabPage.tsx` |
+| 11 | **Calendar View Screen (Screen 11)** | ✅ Completed | `CalendarViewPage.tsx` |
 
 ---
 
-## 🏃 3. How to Change API Base URL on Deployment
+## 🏃 3. How to Run Frontend & Backend
 
-For production deployments (e.g. Vercel, Netlify, Render), set the environment variable:
-```bash
-VITE_API_BASE_URL=https://your-production-backend-domain.com/api
-```
-All API calls in `src/services/api.ts` will automatically route to the configured URL.
+1. **Backend Express Server**:
+   ```bash
+   cd backend
+   node --watch index.js # Runs on port 5000
+   ```
+
+2. **Frontend React + Vite**:
+   ```bash
+   cd frontend
+   npm run dev # Runs on port 3000
+   ```

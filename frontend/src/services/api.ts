@@ -438,7 +438,11 @@ export const activitiesApi = {
   }): Promise<OpenTripMapPOI[]> {
     try {
       const query = new URLSearchParams(params as any).toString();
-      return await request<OpenTripMapPOI[]>(`/activities?${query}`);
+      const res = await request<any>(`/activities?${query}`);
+      if (Array.isArray(res)) return res;
+      if (res && Array.isArray(res.activities)) return res.activities;
+      if (res && Array.isArray(res.data)) return res.data;
+      return [];
     } catch {
       return [
         {
@@ -456,6 +460,14 @@ export const activitiesApi = {
           previewUrl:
             'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=600&q=80',
           plannedCost: 500,
+        },
+        {
+          otmPlaceId: 'W3349182741',
+          name: 'Paragliding & Sky Adventure',
+          kinds: 'sport,adventure,outdoor',
+          previewUrl:
+            'https://images.unsplash.com/photo-1516738901171-8eb4fc13bd20?auto=format&fit=crop&w=600&q=80',
+          plannedCost: 2500,
         },
       ];
     }

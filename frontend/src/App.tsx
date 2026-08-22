@@ -21,10 +21,18 @@ import { ToastContainer } from './components/ToastContainer';
 import { PopularPlace, ExplorePlace, AdventureStamp } from './types/travel';
 import { HomePage } from './components/HomePage/HomePage';
 import { CreateTripPage } from './components/CreateTripPage';
+import { ItineraryBuilderPage } from './components/ItineraryBuilderPage';
+import { UserTripListingPage } from './components/UserTripListingPage';
+import { UserProfilePage } from './components/UserProfilePage';
+import { SearchDiscoveryPage } from './components/SearchDiscoveryPage';
+import { ItineraryViewBudgetPage } from './components/ItineraryViewBudgetPage';
+import { CommunityTabPage } from './components/CommunityTabPage';
+import { CalendarViewPage } from './components/CalendarViewPage';
 
 export default function App() {
-  // Navigation View State ('home' dashboard view vs 'landing' vs 'create-trip')
-  const [activeView, setActiveView] = useState<'landing' | 'home' | 'create-trip'>('home');
+  // Navigation View State ('home' | 'landing' | 'create-trip' | 'itinerary-builder' | 'my-trips' | 'profile' | 'search' | 'budget-view' | 'community' | 'calendar')
+  const [activeView, setActiveView] = useState<'landing' | 'home' | 'create-trip' | 'itinerary-builder' | 'my-trips' | 'profile' | 'search' | 'budget-view' | 'community' | 'calendar'>('home');
+  const [selectedTripId, setSelectedTripId] = useState<string | undefined>(undefined);
   // Wishlist state with localStorage persistence
   const [wishlist, setWishlist] = useState<string[]>(() => {
     try {
@@ -175,12 +183,70 @@ export default function App() {
         onViewChange={(v) => setActiveView(v)}
       />
 
-      {/* Main Content Sections */}
-      {activeView === 'create-trip' ? (
+      {activeView === 'calendar' ? (
+        <CalendarViewPage
+          onOpenTrip={(tId) => {
+            setSelectedTripId(tId);
+            setActiveView('budget-view');
+          }}
+          onOpenCreateTrip={() => setActiveView('create-trip')}
+          showToast={showToast}
+        />
+      ) : activeView === 'community' ? (
+        <CommunityTabPage
+          onCopyTripShortcut={() => setActiveView('create-trip')}
+          showToast={showToast}
+        />
+      ) : activeView === 'budget-view' ? (
+        <ItineraryViewBudgetPage
+          tripId={selectedTripId}
+          onBack={() => setActiveView('home')}
+          onOpenEditItinerary={(tId) => {
+            setSelectedTripId(tId);
+            setActiveView('itinerary-builder');
+          }}
+          showToast={showToast}
+        />
+      ) : activeView === 'search' ? (
+        <SearchDiscoveryPage
+          onOpenCreateTrip={() => setActiveView('create-trip')}
+          onSelectCity={(city) => {
+            setActiveView('create-trip');
+          }}
+          showToast={showToast}
+        />
+      ) : activeView === 'profile' ? (
+        <UserProfilePage
+          currentUser={currentUser}
+          onSelectTripItinerary={(tripId) => {
+            setSelectedTripId(tripId);
+            setActiveView('itinerary-builder');
+          }}
+          onOpenCreateTrip={() => setActiveView('create-trip')}
+          showToast={showToast}
+        />
+      ) : activeView === 'my-trips' ? (
+        <UserTripListingPage
+          onOpenCreateTrip={() => setActiveView('create-trip')}
+          onSelectTripItinerary={(tripId) => {
+            setSelectedTripId(tripId);
+            setActiveView('itinerary-builder');
+          }}
+          showToast={showToast}
+        />
+      ) : activeView === 'itinerary-builder' ? (
+        <ItineraryBuilderPage
+          tripId={selectedTripId}
+          onBack={() => setActiveView('home')}
+          showToast={showToast}
+        />
+      ) : activeView === 'create-trip' ? (
         <CreateTripPage
           onBackToHome={() => setActiveView('home')}
           onTripCreated={(newTrip) => {
             showToast(`Trip "${newTrip.name}" created! Saved to your dashboard.`);
+            setSelectedTripId(newTrip.id);
+            setActiveView('itinerary-builder');
           }}
           showToast={showToast}
         />
