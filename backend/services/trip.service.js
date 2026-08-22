@@ -9,6 +9,7 @@ import {
 import { db } from "../db/connection.js";
 import { trips } from "../db/schema/trips.js";
 import { tripStops } from "../db/schema/tripStops.js";
+import { plannedActivities } from "../db/schema/plannedActivities.js";
 import { cities } from "../db/schema/cities.js";
 
 export const serializeTrip = (trip) => ({
@@ -28,32 +29,23 @@ export const serializeTrip = (trip) => ({
   createdAt: trip.createdAt,
 });
 
+export const serializeCity = (city) => ({
+  id: city.id,
+  name: city.name,
+  country: city.country,
+  region: city.region,
+  description: city.description,
+  image: city.image,
+  costIndex: city.costIndex != null ? Number(city.costIndex) : null,
+  latitude: city.latitude != null ? Number(city.latitude) : null,
+  longitude: city.longitude != null ? Number(city.longitude) : null,
+});
+
 export const serializeStop = (stop) => ({
   id: stop.id,
   tripId: stop.tripId,
   cityId: stop.cityId,
-  city: stop.city
-    ? {
-        id: stop.city.id,
-        name: stop.city.name,
-        country: stop.city.country,
-        region: stop.city.region,
-        description: stop.city.description,
-        image: stop.city.image,
-        costIndex:
-          stop.city.costIndex != null
-            ? Number(stop.city.costIndex)
-            : null,
-        latitude:
-          stop.city.latitude != null
-            ? Number(stop.city.latitude)
-            : null,
-        longitude:
-          stop.city.longitude != null
-            ? Number(stop.city.longitude)
-            : null,
-      }
-    : null,
+  city: stop.city ? serializeCity(stop.city) : null,
   startDate: stop.startDate,
   endDate: stop.endDate,
   position: stop.position,
@@ -314,4 +306,123 @@ export const deleteTrip = async ({ id, ownerId }) => {
   }
 
   return true;
+};
+
+const formatTime = (value) => {
+  if (value == null) {
+    return null;
+  }
+
+  const text = String(value);
+
+  return text.length > 5 ? text.slice(0, 5) : text;
+};
+
+const eachDay = (startDate, endDate) => {
+  const days = [];
+  const current = new Date(`${startDate}T00:00:00Z`);
+  const end = new Date(`${endDate}T00:00:00Z`);
+
+  while (current <= end) {
+    days.push(current.toISOString().slice(0, 10));
+    current.setUTCDate(current.getUTCDate() + 1);
+  }
+
+  return days;
+};
+
+export const getTripCalendar = async ({ id, ownerId }) => {
+  const [trip] = await db
+    .select({
+      startDate: trips.startDate,
+      endDate: trips.endDate,
+    })
+    .from(trips)
+    .where(
+      and(
+        eq(trips.id, id),
+        eq(trips.ownerId, ownerId)
+      )
+    );
+
+  if (!trip) {
+    const error = new Error("Trip not found");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  const stops = await db
+    .select({
+      id: tripStops.id,
+      startDate: tripStops.startDate,
+      endDate: tripStops.endDate,
+      position: tripStops.position,
+      city: {
+        id: cities.id,
+        name: cities.name,
+        country: cities.country,
+        region: cities.region,
+        description: cities.description,
+        image: cities.image,
+        costIndex: cities.costIndex,
+        latitude: cities.latitude,
+        longitude: cities.longitude,
+      },
+    })
+    .from(tripStops)
+    .innerJoin(cities, eq(tripStops.cityId, cities.id))
+    .where(eq(tripStops.tripId, id))
+    .orderBy(tripStops.position);
+
+  const stopIds = stops.map((stop) => stop.id);
+
+  const activities = stopIds.length
+    ? await db
+        .select()
+        .from(plannedActivities)
+        .where(inArray(plannedActivities.tripStopId, stopIds))
+        .orderBy(
+          plannedActivities.startTime,
+          plannedActivities.position
+        )
+    : [];
+
+  const activitiesByDate = {};
+
+  for (const activity of activities) {
+    if (!activitiesByDate[activity.date]) {
+      activitiesByDate[activity.date] = [];
+    }
+
+    activitiesByDate[activity.date].push(activity);
+  }
+
+  const days = eachDay(trip.startDate, trip.endDate).map((date) => {
+    const stop = stops.find(
+      (item) => date >= item.startDate && date <= item.endDate
+    );
+
+    const items = (activitiesByDate[date] || []).map((activity) => ({
+      id: activity.id,
+      otmPlaceId: activity.otmPlaceId,
+      startTime: formatTime(activity.startTime),
+      endTime: formatTime(activity.endTime),
+      title: activity.name,
+      cost:
+        activity.plannedCost != null
+          ? Number(activity.plannedCost)
+          : null,
+    }));
+
+    return {
+      date,
+      stopId: stop?.id ?? null,
+      city: stop ? serializeCity(stop.city) : null,
+      items,
+    };
+  });
+
+  return { days };
 };
