@@ -63,9 +63,13 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   // Sort cities
   if (selectedSortBy === 'cost_asc') {
-    displayedCities = [...displayedCities].sort((a, b) => a.cost_index - b.cost_index);
+    displayedCities = [...displayedCities].sort(
+      (a, b) => (a.costIndex ?? a.cost_index) - (b.costIndex ?? b.cost_index)
+    );
   } else if (selectedSortBy === 'cost_desc') {
-    displayedCities = [...displayedCities].sort((a, b) => b.cost_index - a.cost_index);
+    displayedCities = [...displayedCities].sort(
+      (a, b) => (b.costIndex ?? b.cost_index) - (a.costIndex ?? a.cost_index)
+    );
   } else if (selectedSortBy === 'rating') {
     displayedCities = [...displayedCities].sort((a, b) => (b.rating || 0) - (a.rating || 0));
   }

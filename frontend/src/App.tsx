@@ -20,10 +20,11 @@ import { AuthModal, UserProfile } from './components/AuthModal';
 import { ToastContainer } from './components/ToastContainer';
 import { PopularPlace, ExplorePlace, AdventureStamp } from './types/travel';
 import { HomePage } from './components/HomePage/HomePage';
+import { CreateTripPage } from './components/CreateTripPage';
 
 export default function App() {
-  // Navigation View State ('home' dashboard view requested by user vs 'landing' page)
-  const [activeView, setActiveView] = useState<'landing' | 'home'>('home');
+  // Navigation View State ('home' dashboard view vs 'landing' vs 'create-trip')
+  const [activeView, setActiveView] = useState<'landing' | 'home' | 'create-trip'>('home');
   // Wishlist state with localStorage persistence
   const [wishlist, setWishlist] = useState<string[]>(() => {
     try {
@@ -175,10 +176,18 @@ export default function App() {
       />
 
       {/* Main Content Sections */}
-      {activeView === 'home' ? (
+      {activeView === 'create-trip' ? (
+        <CreateTripPage
+          onBackToHome={() => setActiveView('home')}
+          onTripCreated={(newTrip) => {
+            showToast(`Trip "${newTrip.name}" created! Saved to your dashboard.`);
+          }}
+          showToast={showToast}
+        />
+      ) : activeView === 'home' ? (
         <HomePage
           currentUser={currentUser}
-          onOpenBooking={() => setIsBookingOpen(true)}
+          onOpenBooking={() => setActiveView('create-trip')}
           onSelectCityDetail={(city) => {
             setSelectedPlace({
               id: city.id,

@@ -83,7 +83,7 @@ export const PreviousTripsSection: React.FC<PreviousTripsSectionProps> = ({
             {/* Trip Cover Image Header */}
             <div className="relative h-44 w-full overflow-hidden bg-slate-800">
               <img
-                src={trip.cover_image}
+                src={trip.coverUrl || trip.cover_image}
                 alt={trip.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
@@ -93,10 +93,10 @@ export const PreviousTripsSection: React.FC<PreviousTripsSectionProps> = ({
               <div className="absolute top-3 left-3">{getStatusBadge(trip.status)}</div>
 
               {/* Share Slug Badge */}
-              {trip.is_public && (
+              {(trip.isPublic ?? trip.is_public) && (
                 <span className="absolute top-3 right-3 bg-black/40 backdrop-blur-md text-white text-[10px] font-mono px-2.5 py-1 rounded-full border border-white/20 flex items-center gap-1">
                   <Share2 className="w-3 h-3 text-sky-400" />
-                  /{trip.share_slug}
+                  /{trip.shareToken || trip.share_slug}
                 </span>
               )}
 
@@ -119,7 +119,7 @@ export const PreviousTripsSection: React.FC<PreviousTripsSectionProps> = ({
               <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-100">
                 <div className="flex items-center gap-1.5 text-slate-600">
                   <Calendar className="w-3.5 h-3.5 text-sky-600 flex-shrink-0" />
-                  <span className="font-medium text-[11px]">{trip.start_date}</span>
+                  <span className="font-medium text-[11px]">{trip.startDate || trip.start_date}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-slate-600 justify-end">
                   <DollarSign className="w-3.5 h-3.5 text-sky-600 flex-shrink-0" />

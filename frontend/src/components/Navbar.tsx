@@ -85,6 +85,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Home Dashboard</span>
             </button>
             <button
+              onClick={() => onViewChange?.('create-trip')}
+              className={`text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeView === 'create-trip'
+                  ? 'bg-[#0284c7] text-white shadow-sm ring-2 ring-sky-200'
+                  : 'text-slate-600 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-sky-200" />
+              <span>+ Plan New Trip</span>
+            </button>
+            <button
               onClick={() => onViewChange?.('landing')}
               className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors cursor-pointer ${
                 activeView === 'landing'

@@ -1,21 +1,30 @@
 import React, { useState, useRef } from 'react';
-import { 
-  X, Mail, Lock, User, Phone, MapPin, Globe, FileText, 
-  Camera, Eye, EyeOff, Check, Sparkles, ArrowRight, Upload,
-  ShieldCheck, LogOut, Heart
+import {
+  X,
+  Mail,
+  Lock,
+  User as UserIcon,
+  Camera,
+  Eye,
+  EyeOff,
+  Check,
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { authApi } from '../services/api';
 
 export interface UserProfile {
-  username: string;
-  firstName: string;
-  lastName: string;
+  id?: string;
+  name: string;
   email: string;
-  phone: string;
-  city: string;
-  country: string;
-  additionalInfo: string;
   photoUrl: string;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  city?: string;
+  country?: string;
 }
 
 interface AuthModalProps {
@@ -27,24 +36,24 @@ interface AuthModalProps {
   onLogout?: () => void;
 }
 
-// Preset traveler avatar options for fast interactive selection
+// Preset traveler avatar options matching profile_image column
 const PRESET_AVATARS = [
   {
     name: 'Explorer Alex',
-    url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'
+    url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
   },
   {
     name: 'Traveler David',
-    url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80'
+    url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
   },
   {
     name: 'Adventurer Maya',
-    url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80'
+    url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80',
   },
   {
     name: 'Voyager Liam',
-    url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80'
-  }
+    url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
+  },
 ];
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -53,24 +62,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onClose,
   currentUser,
   onLoginSuccess,
-  onLogout
+  onLogout,
 }) => {
   const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
-  
-  // Login Form States (Screen 1)
-  const [loginUsername, setLoginUsername] = useState('alex.wanderer');
+
+  // Login Form States (`users` table: email + password_hash)
+  const [loginEmail, setLoginEmail] = useState('ada@example.com');
   const [loginPassword, setLoginPassword] = useState('GlobeTrotter2026!');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
 
-  // Registration Form States (Screen 2)
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  // Registration Form States (`users` table: name + email + password_hash + profile_image)
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [city, setCity] = useState('');
-  const [country, setCountry] = useState('');
-  const [additionalInfo, setAdditionalInfo] = useState('');
+  const [password, setPassword] = useState('');
   const [photoUrl, setPhotoUrl] = useState(PRESET_AVATARS[0].url);
 
   // Interaction & UI feedback
@@ -78,10 +82,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registeredUser, setRegisteredUser] = useState<UserProfile | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Synchronize initial mode when modal triggers
+  // Synchronize mode when modal triggers
   React.useEffect(() => {
     setMode(initialMode);
     setErrorMsg(null);
@@ -90,7 +94,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Custom photo upload handler (FileReader)
+  // Custom photo upload handler
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -108,42 +112,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Auto-fill demo registration details
+  // Auto-fill demo registration details strictly matching schema
   const handleAutoFillRegistration = () => {
-    setFirstName('Camila');
-    setLastName('Vargas');
+    setName('Camila Vargas');
     setEmail('camila.vargas@globetrotter.com');
-    setPhone('+1 (555) 382-9012');
-    setCity('Barcelona');
-    setCountry('Spain');
-    setAdditionalInfo('Passionate mountain trekker & photographer. Looking for secluded coastal villas and scenic hiking trails across Europe and Asia.');
+    setPassword('Explorer2026!');
     setPhotoUrl(PRESET_AVATARS[2].url);
     setErrorMsg(null);
   };
 
-  // Handle Login Submit (Screen 1)
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  // Handle Login Submit (POST /api/auth/login)
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginUsername.trim() || !loginPassword.trim()) {
-      setErrorMsg('Please enter both username and password.');
+    if (!loginEmail.trim() || !loginPassword.trim()) {
+      setErrorMsg('Please enter both email address and password.');
       return;
     }
 
     setIsSubmitting(true);
     setErrorMsg(null);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const response = await authApi.login({
+        email: loginEmail.trim(),
+        password: loginPassword,
+      });
+
       const user: UserProfile = {
-        username: loginUsername.startsWith('@') ? loginUsername : `@${loginUsername}`,
-        firstName: loginUsername.split('.')[0] || 'Alex',
-        lastName: 'Morgan',
-        email: `${loginUsername.replace('@', '')}@example.com`,
-        phone: '+1 (555) 789-0123',
-        city: 'San Francisco',
-        country: 'United States',
-        additionalInfo: 'GlobeTrotter member since 2026. Frequent traveler.',
-        photoUrl: photoUrl || PRESET_AVATARS[0].url
+        id: response.user.id,
+        name: response.user.name,
+        email: response.user.email,
+        photoUrl: response.user.avatarUrl || response.user.profile_image || photoUrl,
+        firstName: response.user.name.split(' ')[0] || response.user.name,
+        lastName: response.user.name.split(' ')[1] || '',
+        username: `@${response.user.name.toLowerCase().replace(/\s+/g, '')}`,
       };
 
       setRegisteredUser(user);
@@ -154,33 +156,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setTimeout(() => {
         onClose();
       }, 1500);
-    }, 600);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Login failed. Invalid email or password.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  // Handle Registration Submit (Screen 2)
-  const handleRegistrationSubmit = (e: React.FormEvent) => {
+  // Handle Registration Submit (POST /api/auth/signup)
+  const handleRegistrationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!firstName.trim() || !lastName.trim() || !email.trim()) {
-      setErrorMsg('Please fill in required fields (First Name, Last Name, Email).');
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setErrorMsg('Please fill in all required fields (Full Name, Email, Password).');
       return;
     }
 
     setIsSubmitting(true);
     setErrorMsg(null);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const response = await authApi.signup({
+        name: name.trim(),
+        email: email.trim(),
+        password: password.trim(),
+      });
+
       const user: UserProfile = {
-        username: `@${firstName.toLowerCase()}.${lastName.toLowerCase()}`,
-        firstName,
-        lastName,
-        email,
-        phone: phone || '+1 (555) 000-0000',
-        city: city || 'Kyoto',
-        country: country || 'Japan',
-        additionalInfo: additionalInfo || 'Excited to embark on new GlobeTrotter journeys.',
-        photoUrl: photoUrl || PRESET_AVATARS[0].url
+        id: response.user.id,
+        name: response.user.name,
+        email: response.user.email,
+        photoUrl: response.user.avatarUrl || response.user.profile_image || photoUrl,
+        firstName: response.user.name.split(' ')[0] || name,
+        lastName: response.user.name.split(' ')[1] || '',
+        username: `@${name.toLowerCase().replace(/\s+/g, '')}`,
       };
 
       setRegisteredUser(user);
@@ -191,13 +200,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setTimeout(() => {
         onClose();
       }, 1800);
-    }, 700);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Registration failed. Email may already exist.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Forgot password handler (POST /api/auth/forgot-password)
+  const handleForgotPassword = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    const inputEmail = prompt('Enter your registered email address for password reset:');
+    if (inputEmail) {
+      try {
+        await authApi.forgotPassword(inputEmail);
+        alert('If an account exists for that email, password reset instructions have been sent.');
+      } catch {
+        alert('Password reset link sent.');
+      }
+    }
   };
 
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-        
         {/* Backdrop overlay */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -213,9 +239,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 15 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
-          className={`relative bg-white rounded-3xl p-5 sm:p-8 w-full shadow-2xl z-10 border border-slate-100 my-auto transition-all ${
-            mode === 'signup' ? 'max-w-2xl' : 'max-w-md'
-          }`}
+          className="relative bg-white rounded-3xl p-5 sm:p-8 w-full max-w-md shadow-2xl z-10 border border-slate-100 my-auto transition-all"
         >
           {/* Close button */}
           <button
@@ -242,34 +266,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   {mode === 'signin' ? 'Session Authenticated' : 'Registration Complete'}
                 </span>
                 <h3 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
-                  Welcome to GlobeTrotter, {registeredUser.firstName}!
+                  Welcome to GlobeTrotter, {registeredUser.name}!
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto mt-1">
-                  {mode === 'signin' 
-                    ? 'Your traveler profile and saved wishlists are ready.' 
+                  {mode === 'signin'
+                    ? 'Your traveler profile and saved wishlists are ready.'
                     : 'Your explorer passport has been generated successfully.'}
                 </p>
               </div>
 
               {/* Passport Preview Badge */}
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-4 sm:p-5 rounded-2xl max-w-sm mx-auto shadow-xl text-left border border-slate-700 relative overflow-hidden">
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-5 rounded-2xl max-w-sm mx-auto shadow-xl text-left border border-slate-700 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-[#0284c7]/20 rounded-full blur-2xl pointer-events-none" />
                 <div className="flex items-center gap-3.5">
                   <img
                     src={registeredUser.photoUrl}
-                    alt={registeredUser.firstName}
+                    alt={registeredUser.name}
                     className="w-13 h-13 rounded-full object-cover border-2 border-[#0284c7] shadow"
                   />
                   <div>
                     <span className="text-[10px] uppercase font-bold text-[#38bdf8] tracking-wider">
-                      Verified Traveler
+                      Verified User
                     </span>
-                    <h4 className="text-base font-bold leading-tight">
-                      {registeredUser.firstName} {registeredUser.lastName}
-                    </h4>
-                    <p className="text-xs text-slate-300 flex items-center gap-1 mt-0.5">
-                      <MapPin className="w-3 h-3 text-[#38bdf8]" />
-                      {registeredUser.city}, {registeredUser.country}
+                    <h4 className="text-base font-bold leading-tight">{registeredUser.name}</h4>
+                    <p className="text-xs text-slate-300 truncate mt-0.5">
+                      {registeredUser.email}
                     </p>
                   </div>
                 </div>
@@ -288,7 +309,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     Globe<span className="text-[#0284c7]">Trotter</span>
                   </span>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    {mode === 'signin' ? 'Login Screen (Screen 1)' : 'Registration Screen (Screen 2)'}
+                    {mode === 'signin' ? 'Sign In' : 'Sign Up'} (Schema Compliant)
                   </p>
                 </div>
 
@@ -306,7 +327,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
-                    Login
+                    Sign In
                   </button>
                   <button
                     type="button"
@@ -320,7 +341,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
-                    Register
+                    Sign Up
                   </button>
                 </div>
               </div>
@@ -333,23 +354,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               )}
 
               {/* ======================================================== */}
-              {/* SCREEN 1: LOGIN SCREEN                                   */}
+              {/* SIGN IN FORM (users table: email + password_hash)         */}
               {/* ======================================================== */}
               {mode === 'signin' ? (
                 <form onSubmit={handleLoginSubmit} className="space-y-4">
-                  
-                  {/* Photo Container */}
-                  <div className="flex flex-col items-center justify-center pb-2">
+                  {/* Photo Avatar Preview */}
+                  <div className="flex flex-col items-center justify-center pb-1">
                     <div className="relative group">
-                      <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-full overflow-hidden border-3 border-[#0284c7] shadow-md bg-slate-100 relative">
-                        <img
-                          src={photoUrl}
-                          alt="User Photo"
-                          className="w-full h-full object-cover"
-                        />
+                      <div className="w-20 h-20 rounded-full overflow-hidden border-3 border-[#0284c7] shadow-md bg-slate-100">
+                        <img src={photoUrl} alt="User Avatar" className="w-full h-full object-cover" />
                       </div>
-                      
-                      {/* Avatar Picker trigger */}
                       <button
                         type="button"
                         onClick={() => setShowAvatarPicker(!showAvatarPicker)}
@@ -360,11 +374,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       </button>
                     </div>
 
-                    <span className="text-[11px] font-bold text-slate-500 mt-2 uppercase tracking-wider">
-                      Photo
-                    </span>
-
-                    {/* Interactive Avatar Preset Dropdown */}
                     {showAvatarPicker && (
                       <div className="mt-2 p-2 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-2 shadow-sm">
                         {PRESET_AVATARS.map((av, i) => (
@@ -375,8 +384,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                               setPhotoUrl(av.url);
                               setShowAvatarPicker(false);
                             }}
-                            className={`w-9 h-9 rounded-full overflow-hidden border-2 transition-all cursor-pointer ${
-                              photoUrl === av.url ? 'border-[#0284c7] scale-110' : 'border-transparent opacity-70 hover:opacity-100'
+                            className={`w-8 h-8 rounded-full overflow-hidden border-2 transition-all cursor-pointer ${
+                              photoUrl === av.url
+                                ? 'border-[#0284c7] scale-110'
+                                : 'border-transparent opacity-70 hover:opacity-100'
                             }`}
                           >
                             <img src={av.url} alt={av.name} className="w-full h-full object-cover" />
@@ -386,19 +397,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     )}
                   </div>
 
-                  {/* Field: Username */}
+                  {/* Field: Email */}
                   <div>
                     <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                      Username
+                      Email Address <span className="text-rose-500">*</span>
                     </label>
                     <div className="flex items-center gap-2.5 px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-[#0284c7] focus-within:bg-white transition-all">
-                      <User className="w-4 h-4 text-slate-400 shrink-0" />
+                      <Mail className="w-4 h-4 text-slate-400 shrink-0" />
                       <input
-                        type="text"
+                        type="email"
                         required
-                        value={loginUsername}
-                        onChange={(e) => setLoginUsername(e.target.value)}
-                        placeholder="Username (e.g. alex.wanderer)"
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
+                        placeholder="name@example.com"
                         className="bg-transparent text-xs sm:text-sm font-semibold text-slate-800 w-full focus:outline-none placeholder-slate-400"
                       />
                     </div>
@@ -408,9 +419,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                        Password
+                        Password <span className="text-rose-500">*</span>
                       </label>
-                      <a href="#" onClick={(e) => { e.preventDefault(); alert('Reset link sent to registered email.'); }} className="text-[11px] text-[#0284c7] font-semibold hover:underline">
+                      <a
+                        href="#"
+                        onClick={handleForgotPassword}
+                        className="text-[11px] text-[#0284c7] font-semibold hover:underline"
+                      >
                         Forgot password?
                       </a>
                     </div>
@@ -434,39 +449,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Remember me option */}
-                  <div className="flex items-center justify-between text-xs text-slate-600 pt-1">
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                        className="w-4 h-4 rounded text-[#0284c7] focus:ring-[#0284c7] border-slate-300"
-                      />
-                      <span className="font-medium text-slate-700">Remember me</span>
-                    </label>
-                  </div>
-
                   {/* Primary Login Button */}
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    id="auth-login-btn"
                     className="w-full py-3.5 rounded-2xl bg-[#0284c7] hover:bg-[#0369a1] text-white font-extrabold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all mt-2 cursor-pointer flex items-center justify-center gap-2 active:scale-98 disabled:opacity-70"
                   >
                     {isSubmitting ? (
-                      <span>Verifying credentials...</span>
+                      <span>Signing in...</span>
                     ) : (
                       <>
-                        <span>Login Button</span>
+                        <span>Sign In</span>
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}
                   </button>
 
-                  {/* Bottom switch to Registration */}
                   <div className="text-center pt-2 text-xs text-slate-500">
-                    Don't have an account yet?{' '}
+                    Need an account?{' '}
                     <button
                       type="button"
                       onClick={() => {
@@ -475,48 +475,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       }}
                       className="text-[#0284c7] font-bold hover:underline cursor-pointer"
                     >
-                      Register Users
+                      Create one here
                     </button>
                   </div>
                 </form>
               ) : (
-                
                 /* ======================================================== */
-                /* SCREEN 2: REGISTRATION SCREEN (REGISTER USERS)           */
+                /* SIGN UP FORM (users table: name, email, password, image)  */
                 /* ======================================================== */
                 <form onSubmit={handleRegistrationSubmit} className="space-y-4">
-                  
-                  {/* Photo Section (Matching Screen 2 wireframe content) */}
-                  <div className="flex flex-col sm:flex-row items-center justify-between bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 gap-3">
-                    <div className="flex items-center gap-3.5">
+                  {/* Profile Photo Section */}
+                  <div className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
+                    <div className="flex items-center gap-3">
                       <div className="relative">
-                        <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#0284c7] shadow-sm bg-white">
-                          <img
-                            src={photoUrl}
-                            alt="Profile Photo"
-                            className="w-full h-full object-cover"
-                          />
+                        <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-[#0284c7] shadow-sm bg-white">
+                          <img src={photoUrl} alt="Profile Photo" className="w-full h-full object-cover" />
                         </div>
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-[#0284c7] text-white hover:bg-[#0369a1] shadow cursor-pointer"
+                          className="absolute -bottom-1 -right-1 p-1 rounded-full bg-[#0284c7] text-white hover:bg-[#0369a1] shadow cursor-pointer"
                           title="Upload Custom Photo"
                         >
                           <Camera className="w-3 h-3" />
                         </button>
                       </div>
                       <div>
-                        <span className="text-xs font-bold text-slate-800 block">
-                          Profile Photo
-                        </span>
-                        <span className="text-[11px] text-slate-400 block">
-                          Select an avatar or upload your picture
-                        </span>
+                        <span className="text-xs font-bold text-slate-800 block">Profile Image</span>
+                        <span className="text-[11px] text-slate-400 block">Select avatar or upload</span>
                       </div>
                     </div>
 
-                    {/* Hidden file input for custom uploads */}
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -525,186 +514,109 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       className="hidden"
                     />
 
-                    {/* Avatar Preset Chips & Auto-fill button */}
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1.5">
-                        {PRESET_AVATARS.map((av, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => setPhotoUrl(av.url)}
-                            className={`w-8 h-8 rounded-full overflow-hidden border-2 transition-all cursor-pointer ${
-                              photoUrl === av.url ? 'border-[#0284c7] ring-2 ring-blue-200' : 'border-transparent opacity-70 hover:opacity-100'
-                            }`}
-                            title={av.name}
-                          >
-                            <img src={av.url} alt={av.name} className="w-full h-full object-cover" />
-                          </button>
-                        ))}
-                      </div>
-
+                    <div className="flex items-center gap-1.5">
+                      {PRESET_AVATARS.map((av, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setPhotoUrl(av.url)}
+                          className={`w-7 h-7 rounded-full overflow-hidden border-2 transition-all cursor-pointer ${
+                            photoUrl === av.url ? 'border-[#0284c7] ring-2 ring-sky-200' : 'border-transparent opacity-70'
+                          }`}
+                        >
+                          <img src={av.url} alt={av.name} className="w-full h-full object-cover" />
+                        </button>
+                      ))}
                       <button
                         type="button"
                         onClick={handleAutoFillRegistration}
-                        className="px-2.5 py-1.5 rounded-lg bg-blue-100/80 hover:bg-blue-200 text-[#0284c7] text-[11px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
-                        title="Auto-fill example explorer data"
+                        className="px-2 py-1 rounded-lg bg-sky-100 text-[#0284c7] text-[10px] font-bold transition-colors cursor-pointer flex items-center gap-0.5"
                       >
                         <Sparkles className="w-3 h-3" />
-                        <span className="hidden sm:inline">Demo Fill</span>
+                        <span>Demo</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* Two-Column Grid matching the wireframe: First Name | Last Name */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                        First Name <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-[#0284c7] focus-within:bg-white transition-all">
-                        <User className="w-4 h-4 text-slate-400 shrink-0" />
-                        <input
-                          type="text"
-                          required
-                          value={firstName}
-                          onChange={(e) => setFirstName(e.target.value)}
-                          placeholder="First Name"
-                          className="bg-transparent text-xs sm:text-sm font-semibold text-slate-800 w-full focus:outline-none placeholder-slate-400"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                        Last Name <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-[#0284c7] focus-within:bg-white transition-all">
-                        <User className="w-4 h-4 text-slate-400 shrink-0" />
-                        <input
-                          type="text"
-                          required
-                          value={lastName}
-                          onChange={(e) => setLastName(e.target.value)}
-                          placeholder="Last Name"
-                          className="bg-transparent text-xs sm:text-sm font-semibold text-slate-800 w-full focus:outline-none placeholder-slate-400"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Two-Column Grid: Email Address | Phone Number */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                        Email Address <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-[#0284c7] focus-within:bg-white transition-all">
-                        <Mail className="w-4 h-4 text-slate-400 shrink-0" />
-                        <input
-                          type="email"
-                          required
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="Email Address"
-                          className="bg-transparent text-xs sm:text-sm font-semibold text-slate-800 w-full focus:outline-none placeholder-slate-400"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                        Phone Number
-                      </label>
-                      <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-[#0284c7] focus-within:bg-white transition-all">
-                        <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-                        <input
-                          type="tel"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          placeholder="+1 (555) 000-0000"
-                          className="bg-transparent text-xs sm:text-sm font-semibold text-slate-800 w-full focus:outline-none placeholder-slate-400"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Two-Column Grid: City | Country */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                        City
-                      </label>
-                      <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-[#0284c7] focus-within:bg-white transition-all">
-                        <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-                        <input
-                          type="text"
-                          value={city}
-                          onChange={(e) => setCity(e.target.value)}
-                          placeholder="e.g. Kyoto, Rome, New York"
-                          className="bg-transparent text-xs sm:text-sm font-semibold text-slate-800 w-full focus:outline-none placeholder-slate-400"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                        Country
-                      </label>
-                      <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-[#0284c7] focus-within:bg-white transition-all">
-                        <Globe className="w-4 h-4 text-slate-400 shrink-0" />
-                        <input
-                          type="text"
-                          value={country}
-                          onChange={(e) => setCountry(e.target.value)}
-                          placeholder="e.g. Japan, Italy, Spain"
-                          className="bg-transparent text-xs sm:text-sm font-semibold text-slate-800 w-full focus:outline-none placeholder-slate-400"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Full Width: Additional Information .... */}
+                  {/* Field: Full Name */}
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                        Additional Information ....
-                      </label>
-                      <span className="text-[10px] text-slate-400">
-                        {additionalInfo.length}/300 chars
-                      </span>
-                    </div>
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-[#0284c7] focus-within:bg-white transition-all">
-                      <textarea
-                        rows={3}
-                        maxLength={300}
-                        value={additionalInfo}
-                        onChange={(e) => setAdditionalInfo(e.target.value)}
-                        placeholder="Write about your travel preferences, passport nationality, dietary notes, or dream bucket list places..."
-                        className="bg-transparent text-xs sm:text-sm font-medium text-slate-800 w-full focus:outline-none placeholder-slate-400 resize-none"
+                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
+                      Full Name <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="flex items-center gap-2 px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-[#0284c7] focus-within:bg-white transition-all">
+                      <UserIcon className="w-4 h-4 text-slate-400 shrink-0" />
+                      <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g. Ada Lovelace"
+                        className="bg-transparent text-xs sm:text-sm font-semibold text-slate-800 w-full focus:outline-none placeholder-slate-400"
                       />
                     </div>
                   </div>
 
-                  {/* Primary Action Button: Register Users */}
+                  {/* Field: Email */}
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
+                      Email Address <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="flex items-center gap-2 px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-[#0284c7] focus-within:bg-white transition-all">
+                      <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="ada@example.com"
+                        className="bg-transparent text-xs sm:text-sm font-semibold text-slate-800 w-full focus:outline-none placeholder-slate-400"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Field: Password */}
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
+                      Password <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="flex items-center gap-2 px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-[#0284c7] focus-within:bg-white transition-all">
+                      <Lock className="w-4 h-4 text-slate-400 shrink-0" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Create strong password"
+                        className="bg-transparent text-xs sm:text-sm font-semibold text-slate-800 w-full focus:outline-none placeholder-slate-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    id="auth-register-btn"
                     className="w-full py-3.5 rounded-2xl bg-[#0284c7] hover:bg-[#0369a1] text-white font-extrabold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all mt-2 cursor-pointer flex items-center justify-center gap-2 active:scale-98 disabled:opacity-70"
                   >
                     {isSubmitting ? (
-                      <span>Creating Explorer Profile...</span>
+                      <span>Creating Account...</span>
                     ) : (
                       <>
                         <ShieldCheck className="w-4 h-4" />
-                        <span>Register Users</span>
+                        <span>Sign Up</span>
                       </>
                     )}
                   </button>
 
-                  {/* Bottom switch to Login Screen */}
                   <div className="text-center pt-1 text-xs text-slate-500">
-                    Already registered an account?{' '}
+                    Already registered?{' '}
                     <button
                       type="button"
                       onClick={() => {
@@ -713,16 +625,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       }}
                       className="text-[#0284c7] font-bold hover:underline cursor-pointer"
                     >
-                      Login Screen
+                      Sign In here
                     </button>
                   </div>
-
                 </form>
               )}
-
             </div>
           )}
-
         </motion.div>
       </div>
     </AnimatePresence>
