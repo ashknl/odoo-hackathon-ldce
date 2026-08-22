@@ -1,11 +1,11 @@
 info:
-  name: get stops
+  name: get popular cities
   type: http
-  seq: 13
+  seq: 21
 
 http:
   method: GET
-  url: http://localhost:5000/api/trips/06ac43e5-fc09-40bc-ab35-0e681ef6e12b/stops
+  url: http://localhost:5000/api/cities/popular
   auth:
     type: bearer
     token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTE5N2E4ZC01NzNiLTQxNzUtYWNkZC04Y2M2Njk0ZTcxZjYiLCJpYXQiOjE3ODczODQzODksImV4cCI6MTc4Nzk4OTE4OX0.SeJakHHiiy1jL3yn1lXqZinxgKvh4-KiZe-W_V58bYs

@@ -1,16 +1,17 @@
 info:
-  name: login user
+  name: signup user
   type: http
-  seq: 2
+  seq: 1
 
 http:
   method: POST
-  url: http://localhost:5000/api/auth/login
+  url: http://localhost:5000/api/auth/signup
   body:
     type: json
     data: |-
       {
-          "email": "test@example.com",
+          "name": "API Tester",
+          "email": "api.tester@example.com",
           "password": "password123"
       }
 

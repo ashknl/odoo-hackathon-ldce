@@ -1,0 +1,31 @@
+info:
+  name: add stop activity
+  type: http
+  seq: 17
+
+http:
+  method: POST
+  url: http://localhost:5000/api/trips/06ac43e5-fc09-40bc-ab35-0e681ef6e12b/stops/4c23d5f3-3277-4e56-bbb4-f78fa19ec791/activities
+  body:
+    type: json
+    data: |-
+      {
+          "otmPlaceId": "W1823849028",
+          "name": "Louvre Museum",
+          "type": "museum",
+          "date": "2026-07-07",
+          "startTime": "10:00",
+          "endTime": "13:00",
+          "plannedCost": 22,
+          "note": "Book tickets in advance"
+      }
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTE5N2E4ZC01NzNiLTQxNzUtYWNkZC04Y2M2Njk0ZTcxZjYiLCJpYXQiOjE3ODczODQzODksImV4cCI6MTc4Nzk4OTE4OX0.SeJakHHiiy1jL3yn1lXqZinxgKvh4-KiZe-W_V58bYs
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
