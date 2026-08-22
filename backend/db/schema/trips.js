@@ -24,7 +24,7 @@ export const trips = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
 
-    userId: uuid("user_id")
+    ownerId: uuid("owner_id")
       .notNull()
       .references(() => users.id, {
         onDelete: "cascade",
@@ -66,6 +66,6 @@ export const trips = pgTable(
       .notNull(),
   },
   (table) => ({
-    userIdx: index("trips_user_id_idx").on(table.userId),
+    ownerIdx: index("trips_owner_id_idx").on(table.ownerId),
   })
 );

@@ -50,7 +50,7 @@ read-only public sharing the `share_slug` + `is_public` columns are sufficient.
 | Column      | Type           | Notes                        |
 | ----------- | -------------- | ---------------------------- |
 | id          | UUID PK        |                              |
-| user_id     | UUID FK        | → `users.id`                 |
+| owner_id    | UUID FK        | → `users.id`                 |
 | name        | VARCHAR        |                              |
 | description | TEXT           |                              |
 | cover_image | TEXT           |                              |
@@ -251,7 +251,7 @@ sufficient and this table can be omitted.
 | ------------------ | ------------------------- | ----------- | ---------------------------------- |
 | users              | email                     | UNIQUE      | login lookup                       |
 | trips              | share_slug                | UNIQUE      | public share URL                   |
-| trips              | user_id                   | FK + INDEX  | list user's trips                  |
+| trips              | owner_id                  | FK + INDEX  | list user's trips                  |
 | trip_stops         | (trip_id, position)        | COMPOSITE   | ordered itinerary fetch            |
 | planned_activities | (trip_stop_id, date)      | COMPOSITE   | day-by-day itinerary               |
 | planned_activities | otm_place_id              | INDEX       | reverse lookup by OpenTripMap POI  |
