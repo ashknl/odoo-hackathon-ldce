@@ -22,6 +22,8 @@ interface NavbarProps {
   onOpenAuth: (mode: 'signin' | 'signup') => void;
   currentUser?: UserProfile | null;
   onLogout?: () => void;
+  activeView?: 'landing' | 'home';
+  onViewChange?: (view: 'landing' | 'home') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -30,7 +32,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   wishlistCount,
   onOpenAuth,
   currentUser,
-  onLogout
+  onLogout,
+  activeView = 'landing',
+  onViewChange
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -68,28 +72,37 @@ export const Navbar: React.FC<NavbarProps> = ({
           </a>
 
           {/* Centered Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-7">
-            <a 
-              href="#" 
-              className="text-sm font-semibold text-[#0284c7] transition-colors"
+          <nav className="hidden md:flex items-center gap-4">
+            <button
+              onClick={() => onViewChange?.('home')}
+              className={`text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeView === 'home'
+                  ? 'bg-[#0284c7] text-white shadow-sm ring-2 ring-sky-200'
+                  : 'text-slate-600 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200'
+              }`}
             >
-              Home
-            </a>
-            <a 
-              href="#tickets" 
-              className="text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+              <Compass className="w-3.5 h-3.5 text-sky-200" />
+              <span>Home Dashboard</span>
+            </button>
+            <button
+              onClick={() => onViewChange?.('landing')}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors cursor-pointer ${
+                activeView === 'landing'
+                  ? 'bg-[#0284c7]/10 text-[#0284c7] font-bold border border-[#0284c7]/30'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
             >
-              Ticket
-            </a>
+              Landing Page
+            </button>
             <a 
               href="#explore" 
-              className="text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+              className="text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors ml-2"
             >
               Explore
             </a>
             <a 
               href="#activity" 
-              className="text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+              className="text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
             >
               Activity
             </a>
