@@ -125,3 +125,95 @@ export const resolveCity = async (name) => {
     ),
   };
 };
+
+export const radiusSearch = async ({
+  lon,
+  lat,
+  radius = 10000,
+  kinds,
+  rate = 2,
+  limit = 20,
+  offset = 0,
+}) => {
+  const params = {
+    lon,
+    lat,
+    radius,
+    rate,
+    limit,
+    offset,
+    format: "json",
+  };
+
+  if (kinds) {
+    params.kinds = kinds;
+  }
+
+  const data = await request("/radius", params);
+
+  return Array.isArray(data) ? data : [];
+};
+
+export const radiusCount = async ({
+  lon,
+  lat,
+  radius = 10000,
+  kinds,
+  rate = 2,
+}) => {
+  const params = {
+    lon,
+    lat,
+    radius,
+    rate,
+    format: "count",
+  };
+
+  if (kinds) {
+    params.kinds = kinds;
+  }
+
+  const data = await request("/radius", params);
+
+  return data?.count ?? 0;
+};
+
+export const autosuggest = async ({
+  name,
+  lon,
+  lat,
+  radius = 50000,
+}) => {
+  const data = await request("/autosuggest", {
+    name,
+    lon,
+    lat,
+    radius,
+  });
+
+  return data?.features ?? [];
+};
+
+export const getPlaceDetails = async (xid) => {
+  const apiKey = getOpenTripMapApiKey();
+
+  if (!apiKey) {
+    const error = new Error(
+      "OpenTripMap API key is not configured"
+    );
+
+    error.statusCode = 500;
+
+    throw error;
+  }
+
+  const response = await fetch(
+    `${OTM_BASE_URL}/xid/${encodeURIComponent(xid)}?apikey=${apiKey}`
+  );
+
+  if (!response.ok) {
+    return response.json().catch(() => ({}));
+  }
+
+  return response.json();
+};
