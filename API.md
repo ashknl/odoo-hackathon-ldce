@@ -279,6 +279,7 @@ Request:
   "date": "YYYY-MM-DD",
   "startTime": "10:00",
   "endTime": "13:00",
+  "tripId"
   "plannedCost": 22,
   "note": "Book tickets in advance"
 }
