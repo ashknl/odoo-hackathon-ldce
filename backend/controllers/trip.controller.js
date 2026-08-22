@@ -4,11 +4,8 @@ import {
   getTrip,
   updateTrip,
   deleteTrip,
-<<<<<<< HEAD
   getItinerary,
-=======
   getTripCalendar,
->>>>>>> e2811b70c9c0a18aa1272d5879c30e0b0373f8f4
 } from "../services/trip.service.js";
 
 export const listTripsController = async (req, res) => {

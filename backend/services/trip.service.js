@@ -11,7 +11,8 @@ import { trips } from "../db/schema/trips.js";
 import { tripStops } from "../db/schema/tripStops.js";
 import { plannedActivities } from "../db/schema/plannedActivities.js";
 import { cities } from "../db/schema/cities.js";
-import { plannedActivities } from "../db/schema/plannedActivities.js";
+
+import { serializeActivity } from "./stopActivity.service.js";
 
 export const serializeTrip = (trip) => ({
   id: trip.id,
@@ -426,4 +427,99 @@ export const getTripCalendar = async ({ id, ownerId }) => {
   });
 
   return { days };
+};
+
+export const getItinerary = async ({ id, ownerId }) => {
+  const [trip] = await db
+    .select({
+      id: trips.id,
+      name: trips.name,
+      description: trips.description,
+      coverImage: trips.coverImage,
+      startDate: trips.startDate,
+      endDate: trips.endDate,
+      budget: trips.budget,
+      status: trips.status,
+      isPublic: trips.isPublic,
+      shareSlug: trips.shareSlug,
+      ownerId: trips.ownerId,
+      createdAt: trips.createdAt,
+    })
+    .from(trips)
+    .where(
+      and(
+        eq(trips.id, id),
+        eq(trips.ownerId, ownerId)
+      )
+    );
+
+  if (!trip) {
+    const error = new Error("Trip not found");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  const stops = await db
+    .select({
+      id: tripStops.id,
+      tripId: tripStops.tripId,
+      cityId: tripStops.cityId,
+      startDate: tripStops.startDate,
+      endDate: tripStops.endDate,
+      position: tripStops.position,
+      budget: tripStops.budget,
+      city: {
+        id: cities.id,
+        name: cities.name,
+        country: cities.country,
+        region: cities.region,
+        description: cities.description,
+        image: cities.image,
+        costIndex: cities.costIndex,
+        latitude: cities.latitude,
+        longitude: cities.longitude,
+      },
+    })
+    .from(tripStops)
+    .innerJoin(cities, eq(tripStops.cityId, cities.id))
+    .where(eq(tripStops.tripId, id))
+    .orderBy(tripStops.position);
+
+  const stopIds = stops.map((stop) => stop.id);
+
+  const activities = stopIds.length
+    ? await db
+        .select()
+        .from(plannedActivities)
+        .where(inArray(plannedActivities.tripStopId, stopIds))
+        .orderBy(
+          plannedActivities.date,
+          plannedActivities.position
+        )
+    : [];
+
+  const activitiesByStop = {};
+
+  for (const activity of activities) {
+    if (!activitiesByStop[activity.tripStopId]) {
+      activitiesByStop[activity.tripStopId] = [];
+    }
+
+    activitiesByStop[activity.tripStopId].push(
+      serializeActivity(activity)
+    );
+  }
+
+  return {
+    trip: serializeTrip({
+      ...trip,
+      stopCount: stops.length,
+    }),
+    stops: stops.map((stop) => ({
+      ...serializeStop(stop),
+      activities: activitiesByStop[stop.id] || [],
+    })),
+  };
 };
