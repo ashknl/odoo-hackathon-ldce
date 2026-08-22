@@ -1,4 +1,10 @@
-import { createTrip, listTrips } from "../services/trip.service.js";
+import {
+  createTrip,
+  listTrips,
+  getTrip,
+  updateTrip,
+  deleteTrip,
+} from "../services/trip.service.js";
 
 export const listTripsController = async (req, res) => {
   try {
@@ -48,21 +54,85 @@ export const createTripController = async (req, res) => {
 };
 
 export const getTripController = async (req, res) => {
-  return res.status(501).json({
-    message: "Not implemented",
-  });
+  try {
+    const trip = await getTrip({
+      id: req.params.id,
+      ownerId: req.user.id,
+    });
+
+    return res.status(200).json(trip);
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      message: error.message,
+    });
+  }
 };
 
 export const updateTripController = async (req, res) => {
-  return res.status(501).json({
-    message: "Not implemented",
-  });
+  try {
+    const {
+      name,
+      description,
+      startDate,
+      endDate,
+      budget,
+      status,
+    } = req.body || {};
+
+    if (
+      name === undefined &&
+      description === undefined &&
+      startDate === undefined &&
+      endDate === undefined &&
+      budget === undefined &&
+      status === undefined
+    ) {
+      return res.status(400).json({
+        message: "No fields to update",
+      });
+    }
+
+    if (
+      name !== undefined &&
+      name.trim().length === 0
+    ) {
+      return res.status(400).json({
+        message: "name cannot be empty",
+      });
+    }
+
+    const trip = await updateTrip({
+      id: req.params.id,
+      ownerId: req.user.id,
+      name,
+      description,
+      startDate,
+      endDate,
+      budget,
+      status,
+    });
+
+    return res.status(200).json(trip);
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      message: error.message,
+    });
+  }
 };
 
 export const deleteTripController = async (req, res) => {
-  return res.status(501).json({
-    message: "Not implemented",
-  });
+  try {
+    await deleteTrip({
+      id: req.params.id,
+      ownerId: req.user.id,
+    });
+
+    return res.status(204).send();
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      message: error.message,
+    });
+  }
 };
 
 export const uploadCoverController = async (req, res) => {

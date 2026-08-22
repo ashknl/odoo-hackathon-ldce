@@ -1,4 +1,0 @@
-DATABASE_URL=postgresql://postgres.tvmcbwvulifklssboija:odoo-hackathon@aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres
-OPENTRIPMAP_API_KEY=5ae2e3f221c38a28845f05b6b588a45444bc25f8a21a62e271f71871
-JWT_SECRET=odoo-hackathon
-PORT=5000

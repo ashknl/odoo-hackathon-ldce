@@ -1,4 +1,10 @@
-import { eq, desc, count, inArray } from "drizzle-orm";
+import {
+  and,
+  eq,
+  desc,
+  count,
+  inArray,
+} from "drizzle-orm";
 
 import { db } from "../db/connection.js";
 import { trips } from "../db/schema/trips.js";
@@ -145,4 +151,167 @@ export const listTrips = async ({ ownerId }) => {
     ...serializeTrip(row),
     stops: stopsByTrip[row.id] || [],
   }));
+};
+
+const VALID_STATUSES = [
+  "UPCOMING",
+  "ONGOING",
+  "COMPLETED",
+];
+
+export const getTrip = async ({ id, ownerId }) => {
+  const [row] = await db
+    .select({
+      id: trips.id,
+      name: trips.name,
+      description: trips.description,
+      coverImage: trips.coverImage,
+      startDate: trips.startDate,
+      endDate: trips.endDate,
+      budget: trips.budget,
+      status: trips.status,
+      isPublic: trips.isPublic,
+      shareSlug: trips.shareSlug,
+      ownerId: trips.ownerId,
+      createdAt: trips.createdAt,
+      stopCount: count(tripStops.id),
+    })
+    .from(trips)
+    .leftJoin(tripStops, eq(tripStops.tripId, trips.id))
+    .where(
+      and(
+        eq(trips.id, id),
+        eq(trips.ownerId, ownerId)
+      )
+    )
+    .groupBy(trips.id);
+
+  if (!row) {
+    const error = new Error("Trip not found");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  return serializeTrip(row);
+};
+
+export const updateTrip = async ({
+  id,
+  ownerId,
+  name,
+  description,
+  startDate,
+  endDate,
+  budget,
+  status,
+}) => {
+  const [existing] = await db
+    .select({
+      startDate: trips.startDate,
+      endDate: trips.endDate,
+    })
+    .from(trips)
+    .where(
+      and(
+        eq(trips.id, id),
+        eq(trips.ownerId, ownerId)
+      )
+    );
+
+  if (!existing) {
+    const error = new Error("Trip not found");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  const nextStartDate = startDate ?? existing.startDate;
+  const nextEndDate = endDate ?? existing.endDate;
+
+  if (nextEndDate < nextStartDate) {
+    const error = new Error(
+      "endDate cannot be before startDate"
+    );
+
+    error.statusCode = 400;
+
+    throw error;
+  }
+
+  if (
+    status !== undefined &&
+    !VALID_STATUSES.includes(status)
+  ) {
+    const error = new Error("Invalid status");
+
+    error.statusCode = 400;
+
+    throw error;
+  }
+
+  const values = {
+    updatedAt: new Date(),
+  };
+
+  if (name !== undefined) {
+    values.name = name.trim();
+  }
+
+  if (description !== undefined) {
+    values.description = description?.trim() || null;
+  }
+
+  if (startDate !== undefined) {
+    values.startDate = startDate;
+  }
+
+  if (endDate !== undefined) {
+    values.endDate = endDate;
+  }
+
+  if (budget !== undefined) {
+    values.budget = budget;
+  }
+
+  if (status !== undefined) {
+    values.status = status;
+  }
+
+  const [updated] = await db
+    .update(trips)
+    .set(values)
+    .where(
+      and(
+        eq(trips.id, id),
+        eq(trips.ownerId, ownerId)
+      )
+    )
+    .returning();
+
+  return serializeTrip(updated);
+};
+
+export const deleteTrip = async ({ id, ownerId }) => {
+  const [deleted] = await db
+    .delete(trips)
+    .where(
+      and(
+        eq(trips.id, id),
+        eq(trips.ownerId, ownerId)
+      )
+    )
+    .returning({ id: trips.id });
+
+  if (!deleted) {
+    const error = new Error("Trip not found");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  return true;
 };
