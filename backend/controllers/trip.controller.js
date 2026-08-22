@@ -4,6 +4,7 @@ import {
   getTrip,
   updateTrip,
   deleteTrip,
+  getItinerary,
 } from "../services/trip.service.js";
 
 export const listTripsController = async (req, res) => {
@@ -154,9 +155,18 @@ export const updateSharingController = async (req, res) => {
 };
 
 export const getItineraryController = async (req, res) => {
-  return res.status(501).json({
-    message: "Not implemented",
-  });
+  try {
+    const itinerary = await getItinerary({
+      id: req.params.id,
+      ownerId: req.user.id,
+    });
+
+    return res.status(200).json(itinerary);
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      message: error.message,
+    });
+  }
 };
 
 export const getBudgetController = async (req, res) => {

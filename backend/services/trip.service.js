@@ -10,6 +10,7 @@ import { db } from "../db/connection.js";
 import { trips } from "../db/schema/trips.js";
 import { tripStops } from "../db/schema/tripStops.js";
 import { cities } from "../db/schema/cities.js";
+import { plannedActivities } from "../db/schema/plannedActivities.js";
 
 export const serializeTrip = (trip) => ({
   id: trip.id,
@@ -26,6 +27,28 @@ export const serializeTrip = (trip) => ({
   stopCount:
     trip.stopCount != null ? Number(trip.stopCount) : 0,
   createdAt: trip.createdAt,
+});
+
+export const serializeActivity = (activity) => ({
+  id: activity.id,
+  tripStopId: activity.tripStopId,
+  otmPlaceId: activity.otmPlaceId,
+  name: activity.name,
+  type: activity.type,
+  image: activity.image,
+  latitude:
+    activity.latitude != null ? Number(activity.latitude) : null,
+  longitude:
+    activity.longitude != null ? Number(activity.longitude) : null,
+  date: activity.date,
+  startTime: activity.startTime,
+  endTime: activity.endTime,
+  plannedCost:
+    activity.plannedCost != null
+      ? Number(activity.plannedCost)
+      : null,
+  position: activity.position,
+  note: activity.notes,
 });
 
 export const serializeStop = (stop) => ({
@@ -314,4 +337,83 @@ export const deleteTrip = async ({ id, ownerId }) => {
   }
 
   return true;
+};
+
+export const getItinerary = async ({ id, ownerId }) => {
+  const [trip] = await db
+    .select()
+    .from(trips)
+    .where(
+      and(
+        eq(trips.id, id),
+        eq(trips.ownerId, ownerId)
+      )
+    );
+
+  if (!trip) {
+    const error = new Error("Trip not found");
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  const stops = await db
+    .select({
+      id: tripStops.id,
+      tripId: tripStops.tripId,
+      cityId: tripStops.cityId,
+      startDate: tripStops.startDate,
+      endDate: tripStops.endDate,
+      position: tripStops.position,
+      budget: tripStops.budget,
+      city: {
+        id: cities.id,
+        name: cities.name,
+        country: cities.country,
+        region: cities.region,
+        description: cities.description,
+        image: cities.image,
+        costIndex: cities.costIndex,
+        latitude: cities.latitude,
+        longitude: cities.longitude,
+      },
+    })
+    .from(tripStops)
+    .innerJoin(cities, eq(tripStops.cityId, cities.id))
+    .where(eq(tripStops.tripId, id))
+    .orderBy(tripStops.position);
+
+  const stopIds = stops.map((stop) => stop.id);
+
+  const activities = stopIds.length
+    ? await db
+        .select()
+        .from(plannedActivities)
+        .where(inArray(plannedActivities.tripStopId, stopIds))
+        .orderBy(plannedActivities.position)
+    : [];
+
+  const activitiesByStop = {};
+
+  for (const activity of activities) {
+    if (!activitiesByStop[activity.tripStopId]) {
+      activitiesByStop[activity.tripStopId] = [];
+    }
+
+    activitiesByStop[activity.tripStopId].push(
+      serializeActivity(activity)
+    );
+  }
+
+  return {
+    trip: serializeTrip({
+      ...trip,
+      stopCount: stops.length,
+    }),
+    stops: stops.map((stop) => ({
+      ...serializeStop(stop),
+      activities: activitiesByStop[stop.id] || [],
+    })),
+  };
 };
