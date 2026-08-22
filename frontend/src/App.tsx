@@ -19,8 +19,11 @@ import { VideoModal } from './components/VideoModal';
 import { AuthModal, UserProfile } from './components/AuthModal';
 import { ToastContainer } from './components/ToastContainer';
 import { PopularPlace, ExplorePlace, AdventureStamp } from './types/travel';
+import { HomePage } from './components/HomePage/HomePage';
 
 export default function App() {
+  // Navigation View State ('home' dashboard view requested by user vs 'landing' page)
+  const [activeView, setActiveView] = useState<'landing' | 'home'>('home');
   // Wishlist state with localStorage persistence
   const [wishlist, setWishlist] = useState<string[]>(() => {
     try {
@@ -159,7 +162,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#fafbfc] text-slate-900 flex flex-col font-sans selection:bg-[#0284c7] selection:text-white">
       
-      {/* 1. Clean Navigation Bar */}
+      {/* 1. Clean Navigation Bar with View Switcher */}
       <Navbar
         onOpenBooking={() => setIsBookingOpen(true)}
         onOpenWishlist={() => setIsWishlistOpen(true)}
@@ -167,46 +170,66 @@ export default function App() {
         onOpenAuth={(mode) => setAuthModal({ isOpen: true, mode })}
         currentUser={currentUser}
         onLogout={handleLogout}
+        activeView={activeView}
+        onViewChange={(v) => setActiveView(v)}
       />
 
       {/* Main Content Sections */}
-      <main className="flex-1 space-y-4 sm:space-y-8">
-        
-        {/* 2. Hero Section with requested background image, flight curves, and search bar dock */}
-        <Hero onSearch={handleHeroSearch} />
-
-        {/* 3. Popular Place (4 Cards with 20% OFF Badges) */}
-        <PopularPlaces
-          onSelectPlace={handleSelectPopularPlace}
-          wishlist={wishlist}
-          onToggleWishlist={toggleWishlist}
-        />
-
-        {/* 4. Sweet Memories (01, 02, 03 Steps + Hero Image with 3 Floating Reviewers) */}
-        <SweetMemories
-          onStartExplore={() => {
-            const el = document.getElementById('explore');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
+      {activeView === 'home' ? (
+        <HomePage
+          currentUser={currentUser}
+          onOpenBooking={() => setIsBookingOpen(true)}
+          onSelectCityDetail={(city) => {
+            setSelectedPlace({
+              id: city.id,
+              name: city.name,
+              location: `${city.region}, ${city.country}`,
+              image: city.image,
+              price: city.cost_index,
+              rating: city.rating || 4.7,
+              description: city.description,
+            });
           }}
         />
+      ) : (
+        <main className="flex-1 space-y-4 sm:space-y-8">
+          
+          {/* 2. Hero Section */}
+          <Hero onSearch={handleHeroSearch} />
 
-        {/* 5. Explore More (Category Pills + 6 Cards with $148/Pax + Show More) */}
-        <ExploreMore
-          onSelectPlace={handleSelectExplorePlace}
-          wishlist={wishlist}
-          onToggleWishlist={toggleWishlist}
-        />
+          {/* 3. Popular Place */}
+          <PopularPlaces
+            onSelectPlace={handleSelectPopularPlace}
+            wishlist={wishlist}
+            onToggleWishlist={toggleWishlist}
+          />
 
-        {/* 6. Adventure Stamps (Paris, New York, Seoul, Bali vintage postcards) */}
-        <AdventureStamps onSelectStamp={handleSelectStamp} />
+          {/* 4. Sweet Memories */}
+          <SweetMemories
+            onStartExplore={() => {
+              const el = document.getElementById('explore');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+          />
 
-        {/* 7. Panoramic Ocean Video Banner (Book tickets and go now!) */}
-        <VideoBanner
-          onBookNow={() => setIsBookingOpen(true)}
-          onPlayVideo={() => setIsVideoOpen(true)}
-        />
+          {/* 5. Explore More */}
+          <ExploreMore
+            onSelectPlace={handleSelectExplorePlace}
+            wishlist={wishlist}
+            onToggleWishlist={toggleWishlist}
+          />
 
-      </main>
+          {/* 6. Adventure Stamps */}
+          <AdventureStamps onSelectStamp={handleSelectStamp} />
+
+          {/* 7. Panoramic Ocean Video Banner */}
+          <VideoBanner
+            onBookNow={() => setIsBookingOpen(true)}
+            onPlayVideo={() => setIsVideoOpen(true)}
+          />
+
+        </main>
+      )}
 
       {/* 8. Light, Elegant 5-Column Footer */}
       <Footer />
