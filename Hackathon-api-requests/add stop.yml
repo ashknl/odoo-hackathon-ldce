@@ -1,11 +1,20 @@
 info:
-  name: get stops
+  name: add stop
   type: http
-  seq: 13
+  seq: 14
 
 http:
-  method: GET
+  method: POST
   url: http://localhost:5000/api/trips/06ac43e5-fc09-40bc-ab35-0e681ef6e12b/stops
+  body:
+    type: json
+    data: |-
+      {
+          "cityId": "117b9b6f-3e19-44cd-adcc-a8e1c7867e89",
+          "startDate": "2026-07-11",
+          "endDate": "2026-07-14",
+          "budget": 900
+      }
   auth:
     type: bearer
     token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTE5N2E4ZC01NzNiLTQxNzUtYWNkZC04Y2M2Njk0ZTcxZjYiLCJpYXQiOjE3ODczODQzODksImV4cCI6MTc4Nzk4OTE4OX0.SeJakHHiiy1jL3yn1lXqZinxgKvh4-KiZe-W_V58bYs
