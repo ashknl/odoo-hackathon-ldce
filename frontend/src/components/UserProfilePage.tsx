@@ -52,7 +52,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
       setLoading(true);
       try {
         const fetchedTrips = await tripsApi.getTrips();
-        setTrips(fetchedTrips && fetchedTrips.length > 0 ? fetchedTrips : USER_PREVIOUS_TRIPS);
+        setTrips(fetchedTrips || []);
       } catch (err) {
         console.error(err);
         setTrips(USER_PREVIOUS_TRIPS);

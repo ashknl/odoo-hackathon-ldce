@@ -49,7 +49,7 @@ export const UserTripListingPage: React.FC<UserTripListingPageProps> = ({
       setLoading(true);
       try {
         const fetchedTrips = await tripsApi.getTrips();
-        setTrips(fetchedTrips && fetchedTrips.length > 0 ? fetchedTrips : USER_PREVIOUS_TRIPS);
+        setTrips(fetchedTrips || []);
       } catch (err) {
         console.error('Failed to fetch user trips:', err);
         setTrips(USER_PREVIOUS_TRIPS);

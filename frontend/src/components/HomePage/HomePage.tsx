@@ -14,6 +14,7 @@ import {
   FRIENDS_TRIP_COLLABORATORS,
 } from '../../data/homeData';
 import { City, Trip, User } from '../../types/schema';
+import { citiesApi, tripsApi } from '../../services/api';
 
 interface HomePageProps {
   currentUser?: User | null;
@@ -43,8 +44,36 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [activeFilterRegion, setActiveFilterRegion] = useState('All');
   const [selectedCategory, setSelectedCategory] = useState('Recommended');
 
+  // Real backend data states
+  const [popularCities, setPopularCities] = useState<City[]>([]);
+  const [userTrips, setUserTrips] = useState<Trip[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch real cities & trips on mount
+  React.useEffect(() => {
+    async function loadData() {
+      try {
+        const [citiesData, tripsData] = await Promise.allSettled([
+          citiesApi.getPopularCities(),
+          tripsApi.getTrips(),
+        ]);
+        if (citiesData.status === 'fulfilled' && Array.isArray(citiesData.value)) {
+          setPopularCities(citiesData.value);
+        }
+        if (tripsData.status === 'fulfilled' && Array.isArray(tripsData.value)) {
+          setUserTrips(tripsData.value);
+        }
+      } catch (e) {
+        console.error('Failed to load homepage data from backend:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
   // Filter & Sort cities based on user controls
-  let displayedCities = POPULAR_CITIES.filter((c) => {
+  let displayedCities = popularCities.filter((c) => {
     // Search query match
     if (
       searchQuery &&

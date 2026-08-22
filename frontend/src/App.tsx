@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { PopularPlaces } from './components/PopularPlaces';
@@ -28,11 +28,19 @@ import { SearchDiscoveryPage } from './components/SearchDiscoveryPage';
 import { ItineraryViewBudgetPage } from './components/ItineraryViewBudgetPage';
 import { CommunityTabPage } from './components/CommunityTabPage';
 import { CalendarViewPage } from './components/CalendarViewPage';
+import { authApi, getAuthToken } from './services/api';
 
 export default function App() {
-  // Navigation View State ('home' | 'landing' | 'create-trip' | 'itinerary-builder' | 'my-trips' | 'profile' | 'search' | 'budget-view' | 'community' | 'calendar')
-  const [activeView, setActiveView] = useState<'landing' | 'home' | 'create-trip' | 'itinerary-builder' | 'my-trips' | 'profile' | 'search' | 'budget-view' | 'community' | 'calendar'>('home');
-  const [selectedTripId, setSelectedTripId] = useState<string | undefined>(undefined);
+  // Current logged in user state
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    try {
+      const saved = localStorage.getItem('globetrotter_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
   // Wishlist state with localStorage persistence
   const [wishlist, setWishlist] = useState<string[]>(() => {
     try {
@@ -43,15 +51,51 @@ export default function App() {
     }
   });
 
-  // Current logged in user state with localStorage persistence
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
-    try {
-      const saved = localStorage.getItem('globetrotter_user');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
+  // Navigation View State ('landing' is DEFAULT for unauthenticated users)
+  const [activeView, setActiveView] = useState<'landing' | 'home' | 'create-trip' | 'itinerary-builder' | 'my-trips' | 'profile' | 'search' | 'budget-view' | 'community' | 'calendar'>(() => {
+    return currentUser ? 'home' : 'landing';
   });
+
+  const [selectedTripId, setSelectedTripId] = useState<string | undefined>(undefined);
+
+  // Auto-verify auth status on mount
+  useEffect(() => {
+    const token = getAuthToken();
+    if (token) {
+      authApi.me()
+        .then((user) => {
+          if (user) {
+            const profileUser: UserProfile = {
+              id: user.id,
+              name: user.name,
+              firstName: user.name.split(' ')[0] || user.name,
+              lastName: user.name.split(' ').slice(1).join(' ') || '',
+              username: `@${user.name.toLowerCase().replace(/\s+/g, '')}`,
+              email: user.email,
+              photoUrl: user.avatarUrl || user.profile_image || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+              country: 'India',
+              city: 'Mumbai',
+            };
+            setCurrentUser(profileUser);
+          }
+        })
+        .catch(() => {
+          // Token invalid or expired
+          setCurrentUser(null);
+          setActiveView('landing');
+        });
+    }
+  }, []);
+
+  // Protected View Change Handler (requires auth for app screens)
+  const handleProtectedViewChange = (view: 'landing' | 'home' | 'create-trip' | 'itinerary-builder' | 'my-trips' | 'profile' | 'search' | 'budget-view' | 'community' | 'calendar') => {
+    if (view !== 'landing' && !currentUser) {
+      setAuthModal({ isOpen: true, mode: 'signin' });
+      showToast('Please Sign In or Create an Account to access GlobeTrotter features!');
+      return;
+    }
+    setActiveView(view);
+  };
 
   // Modal States
   const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -180,7 +224,7 @@ export default function App() {
         currentUser={currentUser}
         onLogout={handleLogout}
         activeView={activeView}
-        onViewChange={(v) => setActiveView(v)}
+        onViewChange={(v) => handleProtectedViewChange(v)}
       />
 
       {activeView === 'calendar' ? (

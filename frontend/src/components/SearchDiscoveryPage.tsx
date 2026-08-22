@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Search,
   Filter,
@@ -14,12 +14,14 @@ import {
   Clock,
   ExternalLink,
   Eye,
-  Info
+  Info,
+  Map as MapIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { City, OpenTripMapPOI } from '../types/schema';
 import { citiesApi, activitiesApi } from '../services/api';
 import { POPULAR_CITIES } from '../data/homeData';
+import { PlacesMap, MapMarker } from './PlacesMap';
 
 interface SearchDiscoveryPageProps {
   onOpenCreateTrip: () => void;
@@ -43,21 +45,26 @@ export const SearchDiscoveryPage: React.FC<SearchDiscoveryPageProps> = ({
   const [selectedGroupBy, setSelectedGroupBy] = useState<'region' | 'flat'>('region');
 
   // Cities & Activities Data State
-  const [cities, setCities] = useState<City[]>(POPULAR_CITIES);
+  const [cities, setCities] = useState<City[]>([]);
   const [activities, setActivities] = useState<OpenTripMapPOI[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Selected Activity for Detail Modal
   const [selectedActivityDetail, setSelectedActivityDetail] = useState<OpenTripMapPOI | null>(null);
 
+  // Map state: show/hide map panel + selected pin id
+  const [showMap, setShowMap] = useState(true);
+  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
+
   // 1. Fetch Cities on load
   useEffect(() => {
     async function loadCities() {
       try {
         const cList = await citiesApi.getCities();
-        if (cList && cList.length > 0) setCities(cList);
+        setCities(cList || []);
       } catch (err) {
         console.error('Failed to load cities:', err);
+        setCities([]);
       }
     }
     loadCities();
@@ -124,6 +131,58 @@ export const SearchDiscoveryPage: React.FC<SearchDiscoveryPageProps> = ({
 
   // Group Cities by Region
   const regionsList = Array.from(new Set(cities.map((c) => c.region)));
+
+  // ── Map Marker Derivation (mirrors demo/frontend/src/pages/CitySearch.jsx + ActivitySearch.jsx) ──
+  const cityMarkers = useMemo<MapMarker[]>(() =>
+    sortedCities
+      .filter((c) => c.latitude != null && c.longitude != null)
+      .map((c) => ({
+        id: c.id,
+        lat: Number(c.latitude),
+        lng: Number(c.longitude),
+        title: c.name,
+        subtitle: `${c.country} · ₹${c.cost_index}/day`,
+      })),
+    [sortedCities]
+  );
+
+  // Build a city lookup map (id → City) for activity fallback
+  const cityById = useMemo<Record<string, City>>(() => {
+    const m: Record<string, City> = {};
+    cities.forEach((c) => { m[c.id] = c; });
+    return m;
+  }, [cities]);
+
+  const activityMarkers = useMemo<MapMarker[]>(() =>
+    filteredActivities
+      .map((a) => {
+        // Prefer activity-level coordinates (OTM), fall back to parent city center
+        let lat = (a as any).latitude ?? (a as any).lat;
+        let lng = (a as any).longitude ?? (a as any).lng ?? (a as any).lon;
+        if ((lat == null || lng == null) && (a as any).cityId && cityById[(a as any).cityId]) {
+          const c = cityById[(a as any).cityId];
+          lat = c.latitude;
+          lng = c.longitude;
+        }
+        if (lat == null || lng == null) return null;
+        return {
+          id: a.otmPlaceId,
+          lat: Number(lat),
+          lng: Number(lng),
+          title: a.name,
+          subtitle: [(a.kinds || 'attraction').split(',')[0], a.plannedCost ? `₹${a.plannedCost}` : null]
+            .filter(Boolean).join(' · '),
+        } as MapMarker;
+      })
+      .filter(Boolean) as MapMarker[],
+    [filteredActivities, cityById]
+  );
+
+  const activeMarkers = searchMode === 'cities' ? cityMarkers : activityMarkers;
+
+  const handleMarkerSelect = useCallback((marker: MapMarker) => {
+    setSelectedMarkerId(marker.id);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#fafbfc] text-slate-900 pb-24 pt-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8 font-sans">
@@ -263,6 +322,44 @@ export const SearchDiscoveryPage: React.FC<SearchDiscoveryPageProps> = ({
         </div>
       </div>
 
+      {/* ── Interactive Map Panel (OpenStreetMap via Leaflet — mirrors demo PlacesMap.jsx) ── */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <MapIcon className="w-4 h-4 text-[#0284c7]" />
+            <span className="text-sm font-black text-slate-900">
+              {searchMode === 'cities' ? 'Destination Map' : 'Activity Locations Map'}
+            </span>
+            <span className="text-xs bg-sky-50 text-[#0284c7] px-2 py-0.5 rounded-full font-bold border border-sky-100">
+              {activeMarkers.length} pins
+            </span>
+          </div>
+          <button
+            onClick={() => setShowMap((v) => !v)}
+            className="text-xs font-bold text-slate-500 hover:text-slate-800 px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+          >
+            {showMap ? 'Hide Map' : 'Show Map'}
+          </button>
+        </div>
+
+        {showMap && (
+          <div>
+            <PlacesMap
+              markers={activeMarkers}
+              height={380}
+              onSelect={handleMarkerSelect}
+            />
+            {activeMarkers.length === 0 && !loading && (
+              <p className="text-xs text-slate-400 text-center py-3 font-medium">
+                {searchMode === 'cities'
+                  ? 'No city coordinates available — the backend should return latitude/longitude from OpenTripMap geoname resolution.'
+                  : 'No map coordinates yet — when the backend proxies OpenTripMap, activities include lat/lon; activities are placed at city center as fallback.'}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Screen 8 Wireframe List Results Area */}
       <div className="space-y-6">
         
@@ -280,7 +377,12 @@ export const SearchDiscoveryPage: React.FC<SearchDiscoveryPageProps> = ({
               {sortedCities.map((city) => (
                 <div
                   key={city.id}
-                  className="bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group justify-between"
+                  id={`city-card-${city.id}`}
+                  className={`bg-white rounded-3xl overflow-hidden border shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group justify-between ${
+                    selectedMarkerId === city.id
+                      ? 'border-[#0284c7] ring-2 ring-sky-100'
+                      : 'border-slate-200/80'
+                  }`}
                 >
                   <div className="relative h-48 w-full overflow-hidden bg-slate-900">
                     <img
@@ -418,7 +520,12 @@ export const SearchDiscoveryPage: React.FC<SearchDiscoveryPageProps> = ({
               {filteredActivities.map((act) => (
                 <div
                   key={act.otmPlaceId}
-                  className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow flex items-start gap-4"
+                  id={`activity-card-${act.otmPlaceId}`}
+                  className={`bg-white rounded-3xl p-4 border shadow-sm hover:shadow-md transition-all flex items-start gap-4 ${
+                    selectedMarkerId === act.otmPlaceId
+                      ? 'border-[#0284c7] ring-2 ring-sky-100'
+                      : 'border-slate-200/80'
+                  }`}
                 >
                   <img
                     src={act.previewUrl || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80'}

@@ -81,8 +81,12 @@ export const CalendarViewPage: React.FC<CalendarViewPageProps> = ({
   onOpenCreateTrip,
   showToast,
 }) => {
-  // Calendar Month Navigation state (Default September 2026 for demo consistency)
-  const [currentDate, setCurrentDate] = useState<Date>(new Date(2026, 8, 1));
+  // Real DB Trips state for Calendar
+  const [calendarTrips, setCalendarTrips] = useState<CalendarEventItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Calendar Month Navigation state
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
   const [selectedSortBy, setSelectedSortBy] = useState<'date' | 'name' | 'budget'>('date');
@@ -90,6 +94,52 @@ export const CalendarViewPage: React.FC<CalendarViewPageProps> = ({
   // Selected Day Drawer State
   const [selectedDayDate, setSelectedDayDate] = useState<string | null>(null);
   const [activeDayEvents, setActiveDayEvents] = useState<CalendarEventItem[]>([]);
+
+  // Fetch real trips from database on mount
+  useEffect(() => {
+    async function loadTrips() {
+      setLoading(true);
+      try {
+        const rawTrips = await tripsApi.getTrips();
+        if (Array.isArray(rawTrips) && rawTrips.length > 0) {
+          const colors = [
+            'bg-[#0284c7] text-white border-sky-600',
+            'bg-purple-600 text-white border-purple-700',
+            'bg-emerald-600 text-white border-emerald-700',
+            'bg-amber-600 text-white border-amber-700',
+          ];
+          const mapped: CalendarEventItem[] = rawTrips.map((t, idx) => ({
+            id: t.id,
+            tripId: t.id,
+            tripName: t.name.toUpperCase(),
+            destination: t.stops && t.stops.length > 0 ? t.stops.map((s) => s.city?.name).filter(Boolean).join(' & ') : 'Multi-City Tour',
+            startDate: (t.startDate || t.start_date || '2026-09-01').slice(0, 10),
+            endDate: (t.endDate || t.end_date || '2026-09-10').slice(0, 10),
+            color: colors[idx % colors.length],
+            status: t.status === 'COMPLETED' ? 'Completed' : 'Upcoming',
+            budget: t.budget || 50000,
+          }));
+          setCalendarTrips(mapped);
+          
+          // Auto-adjust calendar to first trip's start date
+          if (mapped[0]?.startDate) {
+            const firstDate = new Date(mapped[0].startDate);
+            if (!isNaN(firstDate.getTime())) {
+              setCurrentDate(new Date(firstDate.getFullYear(), firstDate.getMonth(), 1));
+            }
+          }
+        } else {
+          setCalendarTrips([]);
+        }
+      } catch (err) {
+        console.error('Failed to load trips for calendar:', err);
+        setCalendarTrips([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadTrips();
+  }, []);
 
   // Sample Day Activities for Drawer (Reorderable)
   const [dayActivities, setDayActivities] = useState<
@@ -126,7 +176,7 @@ export const CalendarViewPage: React.FC<CalendarViewPageProps> = ({
   const daysInMonth = new Date(currentYear, currentMonthIndex + 1, 0).getDate();
 
   // Filter events
-  const filteredEvents = SAMPLE_CALENDAR_TRIPS.filter((evt) => {
+  const filteredEvents = calendarTrips.filter((evt) => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const matchName = evt.tripName.toLowerCase().includes(q);

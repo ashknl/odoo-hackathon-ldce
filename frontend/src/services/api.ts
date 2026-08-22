@@ -1,7 +1,7 @@
 /**
  * GlobeTrotter REST API Client Module
- * Maps strictly to endpoints documented in `API.md`
- * Base URL: `/api`
+ * Maps strictly to endpoints documented in `backend/API_ENDPOINTS.md`
+ * Base URL: `http://localhost:5000/api` or `/api` via dev server proxy
  */
 
 import {
@@ -9,7 +9,6 @@ import {
   Trip,
   TripStop,
   PlannedActivity,
-  TripExpense,
   SavedDestination,
   City,
   AuthUserResponse,
@@ -25,7 +24,7 @@ import {
   USER_PREVIOUS_TRIPS,
 } from '../data/homeData';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 // Helper to get bearer token from localStorage
 export const getAuthToken = (): string | null => {
@@ -85,7 +84,7 @@ async function request<T>(
   return response.json() as Promise<T>;
 }
 
-// 1. Auth API (/api/auth)
+// 1. Auth API (/api/auth) - Fully Implemented in Backend
 export const authApi = {
   async signup(data: SignUpCredentials): Promise<AuthUserResponse> {
     try {
@@ -96,11 +95,10 @@ export const authApi = {
       if (res.token) setAuthToken(res.token);
       return res;
     } catch (err: any) {
-      // If server responded with a error message (like 409 email exists or 400 validation), throw it so UI displays it
-      if (err.message && !err.message.includes('Failed to fetch')) {
+      if (err.message && !err.message.includes('Failed to fetch') && !err.message.includes('NetworkError')) {
         throw err;
       }
-      // Offline / network fallback
+      // Offline fallback
       const mockUser: User = {
         id: `usr-${Date.now()}`,
         name: data.name,
@@ -126,9 +124,10 @@ export const authApi = {
       if (res.token) setAuthToken(res.token);
       return res;
     } catch (err: any) {
-      if (err.message && !err.message.includes('Failed to fetch')) {
+      if (err.message && !err.message.includes('Failed to fetch') && !err.message.includes('NetworkError')) {
         throw err;
       }
+      // Offline fallback
       const mockUser: User = {
         ...CURRENT_HOME_USER,
         email: data.email,
@@ -150,21 +149,15 @@ export const authApi = {
   },
 
   async me(): Promise<User> {
+    const token = getAuthToken();
+    if (!token) throw new Error('No token found');
     try {
       return await request<User>('/auth/me');
-    } catch {
-      return CURRENT_HOME_USER;
-    }
-  },
-
-  async forgotPassword(email: string): Promise<void> {
-    try {
-      await request<void>('/auth/forgot-password', {
-        method: 'POST',
-        body: JSON.stringify({ email }),
-      });
-    } catch {
-      // 204 No content response or offline fallback
+    } catch (err: any) {
+      if (token === 'mock-jwt-token-globetrotter') {
+        return CURRENT_HOME_USER;
+      }
+      throw err;
     }
   },
 };
@@ -173,7 +166,7 @@ export const authApi = {
 export const usersApi = {
   async getProfile(): Promise<User> {
     try {
-      return await request<User>('/users/me');
+      return await request<User>('/auth/me');
     } catch {
       return CURRENT_HOME_USER;
     }
@@ -186,14 +179,24 @@ export const usersApi = {
         body: JSON.stringify(data),
       });
     } catch {
+      // 501 Fallback: local memory update
       return { ...CURRENT_HOME_USER, ...data };
     }
+  },
+
+  async deleteAccount(password: string): Promise<void> {
+    await request<void>('/users/me', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    });
+    setAuthToken(null);
   },
 
   async getSavedDestinations(): Promise<SavedDestination[]> {
     try {
       return await request<SavedDestination[]>('/users/me/saved-destinations');
     } catch {
+      // 501 Fallback: return static saved destinations
       return POPULAR_CITIES.slice(0, 2).map((city, idx) => ({
         id: `save-${idx + 1}`,
         user_id: CURRENT_HOME_USER.id,
@@ -226,16 +229,108 @@ export const usersApi = {
         method: 'DELETE',
       });
     } catch {
-      // mock deleted
+      // static fallback
     }
   },
 };
 
-// 3. Trips API (/api/trips)
+// Helper to normalize Trip API properties
+function normalizeTrip(trip: any): Trip {
+  const fallbackCover = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80';
+  return {
+    ...trip,
+    id: trip.id,
+    user_id: trip.user_id || trip.ownerId || CURRENT_HOME_USER.id,
+    ownerId: trip.ownerId || trip.user_id || CURRENT_HOME_USER.id,
+    name: trip.name,
+    description: trip.description || '',
+    cover_image: trip.cover_image || trip.coverUrl || fallbackCover,
+    coverUrl: trip.coverUrl || trip.cover_image || fallbackCover,
+    start_date: trip.start_date || trip.startDate || '',
+    startDate: trip.startDate || trip.start_date || '',
+    end_date: trip.end_date || trip.endDate || '',
+    endDate: trip.endDate || trip.end_date || '',
+    budget: Number(trip.budget) || 25000,
+    status: trip.status || 'UPCOMING',
+    is_public: Boolean(trip.is_public ?? trip.isPublic),
+    isPublic: Boolean(trip.isPublic ?? trip.is_public),
+    share_slug: trip.share_slug || trip.shareToken || `trip-${trip.id}`,
+    shareToken: trip.shareToken || trip.share_slug || `trip-${trip.id}`,
+    stop_count: trip.stopCount ?? trip.stop_count ?? (trip.stops ? trip.stops.length : 0),
+    stops: Array.isArray(trip.stops) ? trip.stops.map(normalizeStop) : [],
+  };
+}
+
+function normalizeStop(stop: any): TripStop {
+  return {
+    ...stop,
+    id: stop.id,
+    trip_id: stop.trip_id || stop.tripId,
+    tripId: stop.tripId || stop.trip_id,
+    city_id: stop.city_id || stop.cityId,
+    cityId: stop.cityId || stop.city_id,
+    city: stop.city ? normalizeCity(stop.city) : undefined,
+    start_date: stop.start_date || stop.startDate || '',
+    startDate: stop.startDate || stop.start_date || '',
+    end_date: stop.end_date || stop.endDate || '',
+    endDate: stop.endDate || stop.start_date || '',
+    position: Number(stop.position) || 0,
+    budget: stop.budget != null ? Number(stop.budget) : undefined,
+    activities: Array.isArray(stop.activities) ? stop.activities.map(normalizeActivity) : [],
+  };
+}
+
+function normalizeActivity(act: any): PlannedActivity {
+  return {
+    ...act,
+    id: act.id,
+    trip_stop_id: act.trip_stop_id || act.tripStopId,
+    tripStopId: act.tripStopId || act.trip_stop_id,
+    otm_place_id: act.otm_place_id || act.otmPlaceId,
+    otmPlaceId: act.otmPlaceId || act.otm_place_id,
+    name: act.name || act.title,
+    title: act.title || act.name,
+    type: act.type || act.category,
+    category: act.category || act.type,
+    image: act.image || act.preview_url,
+    preview_url: act.preview_url || act.image,
+    latitude: act.latitude != null ? Number(act.latitude) : undefined,
+    longitude: act.longitude != null ? Number(act.longitude) : undefined,
+    date: act.date || '',
+    start_time: act.start_time || act.startTime,
+    startTime: act.startTime || act.start_time,
+    end_time: act.end_time || act.endTime,
+    endTime: act.endTime || act.end_time,
+    planned_cost: act.planned_cost != null ? Number(act.planned_cost) : (act.plannedCost != null ? Number(act.plannedCost) : 500),
+    plannedCost: act.plannedCost != null ? Number(act.plannedCost) : (act.planned_cost != null ? Number(act.planned_cost) : 500),
+    position: Number(act.position) || 0,
+    notes: act.notes || act.note || '',
+  };
+}
+
+function normalizeCity(city: any): City {
+  return {
+    ...city,
+    id: city.id,
+    name: city.name,
+    country: city.country,
+    region: city.region || 'International',
+    description: city.description || '',
+    image: city.image || 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80',
+    cost_index: Number(city.costIndex ?? city.cost_index) || 120,
+    costIndex: Number(city.costIndex ?? city.cost_index) || 120,
+    latitude: Number(city.latitude) || 0,
+    longitude: Number(city.longitude) || 0,
+    rating: city.rating || 4.8,
+  };
+}
+
+// 3. Trips API (/api/trips) - Implemented in Backend
 export const tripsApi = {
   async getTrips(): Promise<Trip[]> {
     try {
-      return await request<Trip[]>('/trips');
+      const res = await request<any[]>('/trips');
+      return res.map(normalizeTrip);
     } catch {
       return USER_PREVIOUS_TRIPS;
     }
@@ -243,44 +338,48 @@ export const tripsApi = {
 
   async getTrip(id: string): Promise<Trip> {
     try {
-      return await request<Trip>(`/trips/${id}`);
+      const res = await request<any>(`/trips/${id}`);
+      return normalizeTrip(res);
     } catch {
-      return (
-        USER_PREVIOUS_TRIPS.find((t) => t.id === id) || USER_PREVIOUS_TRIPS[0]
-      );
+      return USER_PREVIOUS_TRIPS.find((t) => t.id === id) || USER_PREVIOUS_TRIPS[0];
     }
   },
 
   async createTrip(data: {
     name: string;
-    description: string;
-    start_date?: string;   // DB column name
-    end_date?: string;     // DB column name
-    startDate?: string;    // API alias
-    endDate?: string;      // API alias
+    description?: string;
+    startDate: string;
+    endDate: string;
     budget?: number;
-    cover_image?: string;  // DB column name (trips.cover_image)
+    cover_image?: string;
   }): Promise<Trip> {
     try {
-      return await request<Trip>('/trips', {
+      const res = await request<any>('/trips', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description || null,
+          startDate: data.startDate,
+          endDate: data.endDate,
+          budget: data.budget ? Number(data.budget) : undefined,
+        }),
       });
+      return normalizeTrip(res);
     } catch {
-      const fallbackCover = data.cover_image ||
-        'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80';
+      // Local fallback
+      const fallbackCover = data.cover_image || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80';
       const newTrip: Trip = {
         id: `trip-${Date.now()}`,
         user_id: CURRENT_HOME_USER.id,
         ownerId: CURRENT_HOME_USER.id,
         name: data.name,
-        description: data.description,
+        description: data.description || '',
         cover_image: fallbackCover,
         coverUrl: fallbackCover,
-        start_date: data.start_date || data.startDate || '',
-        startDate: data.startDate || data.start_date || '',
-        end_date: data.end_date || data.endDate || '',
-        endDate: data.endDate || data.end_date || '',
+        start_date: data.startDate,
+        startDate: data.startDate,
+        end_date: data.endDate,
+        endDate: data.endDate,
         budget: data.budget || 25000,
         status: 'UPCOMING',
         is_public: false,
@@ -296,13 +395,20 @@ export const tripsApi = {
 
   async updateTrip(id: string, data: Partial<Trip>): Promise<Trip> {
     try {
-      return await request<Trip>(`/trips/${id}`, {
+      const res = await request<any>(`/trips/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          startDate: data.startDate || data.start_date,
+          endDate: data.endDate || data.end_date,
+          budget: data.budget ? Number(data.budget) : undefined,
+          status: data.status,
+        }),
       });
+      return normalizeTrip(res);
     } catch {
-      const existing =
-        USER_PREVIOUS_TRIPS.find((t) => t.id === id) || USER_PREVIOUS_TRIPS[0];
+      const existing = USER_PREVIOUS_TRIPS.find((t) => t.id === id) || USER_PREVIOUS_TRIPS[0];
       return { ...existing, ...data };
     }
   },
@@ -311,19 +417,28 @@ export const tripsApi = {
     try {
       await request<void>(`/trips/${id}`, { method: 'DELETE' });
     } catch {
-      // mock deleted
+      // fallback handled in UI
     }
   },
 
   async getItinerary(tripId: string): Promise<{ trip: Trip; stops: TripStop[] }> {
     try {
-      return await request<{ trip: Trip; stops: TripStop[] }>(
-        `/trips/${tripId}/itinerary`
-      );
+      const res = await request<any>(`/trips/${tripId}/itinerary`);
+      return {
+        trip: normalizeTrip(res.trip),
+        stops: Array.isArray(res.stops) ? res.stops.map(normalizeStop) : [],
+      };
     } catch {
-      const trip =
-        USER_PREVIOUS_TRIPS.find((t) => t.id === tripId) || USER_PREVIOUS_TRIPS[0];
+      const trip = USER_PREVIOUS_TRIPS.find((t) => t.id === tripId) || USER_PREVIOUS_TRIPS[0];
       return { trip, stops: trip.stops || [] };
+    }
+  },
+
+  async getCalendar(tripId: string): Promise<{ days: Array<{ date: string; stopId?: string; city?: City; items: any[] }> }> {
+    try {
+      return await request<any>(`/trips/${tripId}/calendar`);
+    } catch {
+      return { days: [] };
     }
   },
 
@@ -346,11 +461,12 @@ export const tripsApi = {
   },
 };
 
-// 3b. Trip Stops API (/api/trips/:tripId/stops)
+// 4. Trip Stops API (/api/trips/:tripId/stops)
 export const stopsApi = {
   async getStops(tripId: string): Promise<TripStop[]> {
     try {
-      return await request<TripStop[]>(`/trips/${tripId}/stops`);
+      const res = await request<any[]>(`/trips/${tripId}/stops`);
+      return res.map(normalizeStop);
     } catch {
       return [];
     }
@@ -361,10 +477,11 @@ export const stopsApi = {
     data: { cityId: string; startDate: string; endDate: string; budget?: number }
   ): Promise<TripStop> {
     try {
-      return await request<TripStop>(`/trips/${tripId}/stops`, {
+      const res = await request<any>(`/trips/${tripId}/stops`, {
         method: 'POST',
         body: JSON.stringify(data),
       });
+      return normalizeStop(res);
     } catch {
       const city = POPULAR_CITIES.find((c) => c.id === data.cityId) || POPULAR_CITIES[0];
       return {
@@ -384,26 +501,120 @@ export const stopsApi = {
       };
     }
   },
+
+  async deleteStop(tripId: string, stopId: string): Promise<void> {
+    try {
+      await request<void>(`/trips/${tripId}/stops/${stopId}`, { method: 'DELETE' });
+    } catch {
+      // fallback
+    }
+  },
 };
 
-// 4. Cities API (/api/cities)
+// 5. Stop Activities API (/api/trips/:tripId/stops/:stopId/activities)
+export const stopActivitiesApi = {
+  async getActivities(tripId: string, stopId: string): Promise<PlannedActivity[]> {
+    try {
+      const res = await request<any[]>(`/trips/${tripId}/stops/${stopId}/activities`);
+      return res.map(normalizeActivity);
+    } catch {
+      return [];
+    }
+  },
+
+  async addActivity(
+    tripId: string,
+    stopId: string,
+    data: {
+      name: string;
+      date: string;
+      otmPlaceId?: string;
+      type?: string;
+      image?: string;
+      latitude?: number;
+      longitude?: number;
+      startTime?: string;
+      endTime?: string;
+      plannedCost?: number;
+      notes?: string;
+    }
+  ): Promise<PlannedActivity> {
+    try {
+      const res = await request<any>(`/trips/${tripId}/stops/${stopId}/activities`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      return normalizeActivity(res);
+    } catch {
+      return {
+        id: `act-${Date.now()}`,
+        trip_stop_id: stopId,
+        tripStopId: stopId,
+        name: data.name,
+        title: data.name,
+        date: data.date,
+        type: data.type || 'sightseeing',
+        category: data.type || 'sightseeing',
+        image: data.image,
+        startTime: data.startTime || '10:00',
+        endTime: data.endTime || '12:00',
+        plannedCost: data.plannedCost || 500,
+        notes: data.notes || '',
+        position: 1,
+      };
+    }
+  },
+
+  async updateActivity(
+    tripId: string,
+    stopId: string,
+    activityId: string,
+    data: Partial<PlannedActivity>
+  ): Promise<PlannedActivity> {
+    try {
+      const res = await request<any>(`/trips/${tripId}/stops/${stopId}/activities/${activityId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+      return normalizeActivity(res);
+    } catch {
+      return { id: activityId, ...data } as PlannedActivity;
+    }
+  },
+
+  async deleteActivity(tripId: string, stopId: string, activityId: string): Promise<void> {
+    try {
+      await request<void>(`/trips/${tripId}/stops/${stopId}/activities/${activityId}`, {
+        method: 'DELETE',
+      });
+    } catch {
+      // fallback
+    }
+  },
+};
+
+// 6. Cities Catalog API (/api/cities) - Implemented in Backend
 export const citiesApi = {
   async getCities(params?: {
     q?: string;
     country?: string;
     region?: string;
     limit?: number;
+    offset?: number;
   }): Promise<City[]> {
     try {
       const query = new URLSearchParams(params as any).toString();
-      return await request<City[]>(`/cities?${query}`);
+      const res = await request<any>(`/cities?${query}`);
+      const list = Array.isArray(res) ? res : (res?.data || []);
+      return list.map(normalizeCity);
     } catch {
       let result = POPULAR_CITIES;
       if (params?.q) {
         result = result.filter(
           (c) =>
             c.name.toLowerCase().includes(params.q!.toLowerCase()) ||
-            c.region.toLowerCase().includes(params.q!.toLowerCase())
+            c.region.toLowerCase().includes(params.q!.toLowerCase()) ||
+            c.country.toLowerCase().includes(params.q!.toLowerCase())
         );
       }
       return result;
@@ -412,7 +623,8 @@ export const citiesApi = {
 
   async getPopularCities(): Promise<City[]> {
     try {
-      return await request<City[]>('/cities/popular');
+      const res = await request<any[]>('/cities/popular');
+      return Array.isArray(res) ? res.map(normalizeCity) : POPULAR_CITIES;
     } catch {
       return POPULAR_CITIES;
     }
@@ -420,67 +632,99 @@ export const citiesApi = {
 
   async getCity(id: string): Promise<City> {
     try {
-      return await request<City>(`/cities/${id}`);
+      const res = await request<any>(`/cities/${id}`);
+      return normalizeCity(res);
     } catch {
-      return (
-        POPULAR_CITIES.find((c) => c.id === id) || POPULAR_CITIES[0]
-      );
+      return POPULAR_CITIES.find((c) => c.id === id) || POPULAR_CITIES[0];
     }
   },
 };
 
-// 5. OpenTripMap Proxy Activities API (/api/activities)
+// 7. OpenTripMap Proxy Activities API (/api/activities) - Implemented in Backend
 export const activitiesApi = {
   async searchActivities(params: {
     cityId?: string;
     q?: string;
     type?: string;
+    limit?: number;
   }): Promise<OpenTripMapPOI[]> {
     try {
       const query = new URLSearchParams(params as any).toString();
       const res = await request<any>(`/activities?${query}`);
-      if (Array.isArray(res)) return res;
-      if (res && Array.isArray(res.activities)) return res.activities;
-      if (res && Array.isArray(res.data)) return res.data;
-      return [];
+      const list = Array.isArray(res) ? res : (res?.data || res?.activities || []);
+      return list.map((item: any) => ({
+        otmPlaceId: item.otmPlaceId || item.xid || `otm-${Math.random()}`,
+        name: item.name,
+        kinds: item.kinds || item.type || 'attraction',
+        previewUrl: item.previewUrl || item.image || item.preview_url,
+        wikipediaExtract: item.wikipediaExtract || item.description,
+        otmUrl: item.otmUrl,
+        latitude: item.latitude != null ? Number(item.latitude) : undefined,
+        longitude: item.longitude != null ? Number(item.longitude) : undefined,
+        plannedCost: item.plannedCost != null ? Number(item.plannedCost) : 500,
+      }));
     } catch {
       return [
         {
           otmPlaceId: 'W1823849028',
           name: 'Historic Fort & Viewpoint',
           kinds: 'historic,viewpoints',
-          previewUrl:
-            'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=600&q=80',
+          previewUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=600&q=80',
           plannedCost: 350,
         },
         {
           otmPlaceId: 'W9918237162',
           name: 'Scenic Valley Waterfall Hike',
           kinds: 'natural,waterfalls',
-          previewUrl:
-            'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=600&q=80',
+          previewUrl: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=600&q=80',
           plannedCost: 500,
         },
         {
           otmPlaceId: 'W3349182741',
           name: 'Paragliding & Sky Adventure',
           kinds: 'sport,adventure,outdoor',
-          previewUrl:
-            'https://images.unsplash.com/photo-1516738901171-8eb4fc13bd20?auto=format&fit=crop&w=600&q=80',
+          previewUrl: 'https://images.unsplash.com/photo-1516738901171-8eb4fc13bd20?auto=format&fit=crop&w=600&q=80',
           plannedCost: 2500,
         },
       ];
     }
   },
+
+  async getActivityDetail(id: string): Promise<OpenTripMapPOI> {
+    try {
+      const res = await request<any>(`/activities/${id}`);
+      return {
+        otmPlaceId: res.otmPlaceId || res.xid || id,
+        name: res.name,
+        kinds: res.kinds || 'attraction',
+        previewUrl: res.previewUrl || res.image,
+        wikipediaExtract: res.wikipediaExtract,
+        otmUrl: res.otmUrl,
+        latitude: res.latitude != null ? Number(res.latitude) : undefined,
+        longitude: res.longitude != null ? Number(res.longitude) : undefined,
+        plannedCost: res.plannedCost != null ? Number(res.plannedCost) : 500,
+      };
+    } catch {
+      return {
+        otmPlaceId: id,
+        name: 'Selected Activity Detail',
+        kinds: 'sightseeing,historic',
+        previewUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
+        plannedCost: 500,
+      };
+    }
+  },
 };
 
-// 6. Public Sharing API (/api/public)
+// 8. Public Sharing API (/api/public)
 export const publicApi = {
   async getPublicTrip(token: string): Promise<{ trip: Trip; stops: TripStop[] }> {
     try {
-      return await request<{ trip: Trip; stops: TripStop[] }>(
-        `/public/trips/${token}`
-      );
+      const res = await request<any>(`/public/trips/${token}`);
+      return {
+        trip: normalizeTrip(res.trip),
+        stops: Array.isArray(res.stops) ? res.stops.map(normalizeStop) : [],
+      };
     } catch {
       const trip = USER_PREVIOUS_TRIPS[0];
       return { trip, stops: trip.stops || [] };

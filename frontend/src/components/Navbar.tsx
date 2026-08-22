@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Menu, 
-  X, 
-  Heart, 
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Menu,
+  X,
+  Heart,
   Compass,
   Ticket,
   MapPin,
@@ -10,12 +10,15 @@ import {
   User,
   Search,
   LogOut,
-  ShieldCheck,
   PieChart,
-  Calendar
+  Calendar,
+  ChevronDown,
+  Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile } from './AuthModal';
+
+type NavView = 'landing' | 'home' | 'create-trip' | 'itinerary-builder' | 'my-trips' | 'profile' | 'search' | 'budget-view' | 'community' | 'calendar';
 
 interface NavbarProps {
   onOpenBooking: () => void;
@@ -24,9 +27,20 @@ interface NavbarProps {
   onOpenAuth: (mode: 'signin' | 'signup') => void;
   currentUser?: UserProfile | null;
   onLogout?: () => void;
-  activeView?: 'landing' | 'home' | 'create-trip' | 'itinerary-builder' | 'my-trips' | 'profile' | 'search' | 'budget-view' | 'community' | 'calendar';
-  onViewChange?: (view: 'landing' | 'home' | 'create-trip' | 'itinerary-builder' | 'my-trips' | 'profile' | 'search' | 'budget-view' | 'community' | 'calendar') => void;
+  activeView?: NavView;
+  onViewChange?: (view: NavView) => void;
 }
+
+const NAV_ITEMS: { view: NavView; label: string; icon: React.FC<{ className?: string }> }[] = [
+  { view: 'home',              label: 'Home Dashboard',         icon: Compass },
+  { view: 'create-trip',      label: 'Plan New Trip',           icon: Sparkles },
+  { view: 'itinerary-builder',label: 'Build Itinerary',         icon: Ticket },
+  { view: 'my-trips',         label: 'My Trips',                icon: MapPin },
+  { view: 'search',           label: 'City / Activity Search',  icon: Search },
+  { view: 'budget-view',      label: 'Budget View',             icon: PieChart },
+  { view: 'community',        label: 'Community',               icon: Users },
+  { view: 'calendar',         label: 'Calendar',                icon: Calendar },
+];
 
 export const Navbar: React.FC<NavbarProps> = ({
   onOpenBooking,
@@ -41,158 +55,80 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const handleNav = (view: NavView) => {
+    onViewChange?.(view);
+    setMobileMenuOpen(false);
+    setUserMenuOpen(false);
+  };
+
+  const activeItem = NAV_ITEMS.find((n) => n.view === activeView);
+
   return (
-    <header 
+    <header
       id="main-navigation"
       className={`sticky top-0 z-50 transition-all duration-200 bg-white ${
-        isScrolled 
-          ? 'shadow-[0_2px_15px_rgba(0,0,0,0.04)] border-b border-slate-100 py-2.5' 
-          : 'py-3 sm:py-3.5'
+        isScrolled
+          ? 'shadow-[0_2px_15px_rgba(0,0,0,0.06)] border-b border-slate-100 py-2.5'
+          : 'py-3 border-b border-slate-100/60'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between">
-          
-          {/* Logo on Left - GlobeTrotter */}
-          <a 
-            href="#" 
+        <div className="flex items-center justify-between gap-3">
+
+          {/* ── Logo ── */}
+          <a
+            href="#"
             id="brand-logo"
-            className="flex items-center gap-2 group"
+            className="flex items-center gap-2 shrink-0"
+            onClick={() => handleNav('home')}
           >
-            <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 font-display">
+            <div className="w-7 h-7 rounded-xl bg-[#0284c7] flex items-center justify-center">
+              <Compass className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-lg font-black tracking-tight text-slate-900 font-display">
               Globe<span className="text-[#0284c7]">Trotter</span>
             </span>
           </a>
 
-          {/* Centered Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-4">
-            <button
-              onClick={() => onViewChange?.('home')}
-              className={`text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeView === 'home'
-                  ? 'bg-[#0284c7] text-white shadow-sm ring-2 ring-sky-200'
-                  : 'text-slate-600 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200'
-              }`}
-            >
-              <Compass className="w-3.5 h-3.5 text-sky-200" />
-              <span>Home Dashboard</span>
-            </button>
-            <button
-              onClick={() => onViewChange?.('create-trip')}
-              className={`text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeView === 'create-trip'
-                  ? 'bg-[#0284c7] text-white shadow-sm ring-2 ring-sky-200'
-                  : 'text-slate-600 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-sky-200" />
-              <span>+ Plan New Trip</span>
-            </button>
-            <button
-              onClick={() => onViewChange?.('itinerary-builder')}
-              className={`text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeView === 'itinerary-builder'
-                  ? 'bg-[#0284c7] text-white shadow-sm ring-2 ring-sky-200'
-                  : 'text-slate-600 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200'
-              }`}
-            >
-              <Ticket className="w-3.5 h-3.5 text-sky-200" />
-              <span>Build Itinerary (Screen 5)</span>
-            </button>
-            <button
-              onClick={() => onViewChange?.('my-trips')}
-              className={`text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeView === 'my-trips'
-                  ? 'bg-[#0284c7] text-white shadow-sm ring-2 ring-sky-200'
-                  : 'text-slate-600 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200'
-              }`}
-            >
-              <Compass className="w-3.5 h-3.5 text-sky-200" />
-              <span>My Trips (Screen 6)</span>
-            </button>
-            <button
-              onClick={() => onViewChange?.('calendar')}
-              className={`text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeView === 'calendar'
-                  ? 'bg-[#0284c7] text-white shadow-sm ring-2 ring-sky-200'
-                  : 'text-slate-600 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200'
-              }`}
-            >
-              <Calendar className="w-3.5 h-3.5 text-sky-200" />
-              <span>Calendar (Screen 11)</span>
-            </button>
-            <button
-              onClick={() => onViewChange?.('community')}
-              className={`text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeView === 'community'
-                  ? 'bg-[#0284c7] text-white shadow-sm ring-2 ring-sky-200'
-                  : 'text-slate-600 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200'
-              }`}
-            >
-              <Compass className="w-3.5 h-3.5 text-sky-200" />
-              <span>Community (Screen 10)</span>
-            </button>
-            <button
-              onClick={() => onViewChange?.('search')}
-              className={`text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeView === 'search'
-                  ? 'bg-[#0284c7] text-white shadow-sm ring-2 ring-sky-200'
-                  : 'text-slate-600 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200'
-              }`}
-            >
-              <Search className="w-3.5 h-3.5 text-sky-200" />
-              <span>Search (Screen 8)</span>
-            </button>
-            <button
-              onClick={() => onViewChange?.('budget-view')}
-              className={`text-xs font-bold px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeView === 'budget-view'
-                  ? 'bg-[#0284c7] text-white shadow-sm ring-2 ring-sky-200'
-                  : 'text-slate-600 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200'
-              }`}
-            >
-              <PieChart className="w-3.5 h-3.5 text-sky-200" />
-              <span>Budget View (Screen 9)</span>
-            </button>
-            <button
-              onClick={() => onViewChange?.('landing')}
-              className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors cursor-pointer ${
-                activeView === 'landing'
-                  ? 'bg-[#0284c7]/10 text-[#0284c7] font-bold border border-[#0284c7]/30'
-                  : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              Landing Page
-            </button>
-            <a 
-              href="#explore" 
-              className="text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors ml-2"
-            >
-              Explore
-            </a>
-            <a 
-              href="#activity" 
-              className="text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
-            >
-              Activity
-            </a>
-          </nav>
+          {/* ── Active Page Breadcrumb (desktop hint) ── */}
+          <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-medium">
+            {activeItem && (
+              <>
+                <span className="text-slate-300">/</span>
+                <span className="text-slate-600 font-bold">{activeItem.label}</span>
+              </>
+            )}
+          </div>
 
-          {/* Right Action Buttons */}
-          <div className="hidden md:flex items-center gap-4 sm:gap-5">
-            {/* Wishlist Saved Icon */}
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* ── Desktop Right Actions ── */}
+          <div className="hidden md:flex items-center gap-2">
+
+            {/* Wishlist */}
             <button
               onClick={onOpenWishlist}
-              className="relative p-1.5 text-slate-500 hover:text-rose-500 transition-colors cursor-pointer"
+              className="relative p-2 text-slate-500 hover:text-rose-500 transition-colors cursor-pointer rounded-xl hover:bg-rose-50"
               title="Saved Places"
             >
               <Heart className="w-5 h-5" />
@@ -203,98 +139,140 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </button>
 
-            {currentUser ? (
-              <div className="relative">
-                <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2.5 pl-2 pr-3 py-1 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-all cursor-pointer"
-                >
-                  <img
-                    src={currentUser.photoUrl}
-                    alt={currentUser.firstName}
-                    className="w-7 h-7 rounded-full object-cover border border-[#0284c7]"
-                  />
-                  <span className="text-xs font-bold text-slate-800">
-                    {currentUser.firstName}
-                  </span>
-                </button>
+            {/* Hamburger Nav Menu (desktop) */}
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                  userMenuOpen
+                    ? 'bg-[#0284c7] text-white border-[#0284c7]'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <Menu className="w-4 h-4" />
+                <span>Navigate</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-                {/* User Dropdown */}
-                <AnimatePresence>
-                  {userMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                      className="absolute right-0 mt-2 w-56 bg-white rounded-2xl p-3 shadow-xl border border-slate-100 z-50 space-y-2"
-                    >
-                      <div className="px-2 py-1.5 border-b border-slate-100">
-                        <p className="text-xs font-bold text-slate-900 truncate">
-                          {currentUser.firstName} {currentUser.lastName}
-                        </p>
-                        <p className="text-[10px] text-slate-400 truncate">
-                          {currentUser.username}
-                        </p>
-                        <p className="text-[10px] text-[#0284c7] font-semibold flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-2.5 h-2.5" />
-                          {currentUser.city}, {currentUser.country}
-                        </p>
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          setUserMenuOpen(false);
-                          onViewChange?.('profile');
-                        }}
-                        className="w-full px-2.5 py-1.5 rounded-lg text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
-                      >
-                        <User className="w-3.5 h-3.5 text-[#0284c7]" />
-                        <span>View Profile (Screen 7)</span>
-                      </button>
-
-                      {onLogout && (
+              <AnimatePresence>
+                {userMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden"
+                  >
+                    <div className="px-3 pt-3 pb-1">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">Navigation</p>
+                    </div>
+                    <div className="px-2 pb-2 space-y-0.5">
+                      {NAV_ITEMS.map(({ view, label, icon: Icon }) => (
                         <button
-                          onClick={() => {
-                            setUserMenuOpen(false);
-                            onLogout();
-                          }}
-                          className="w-full px-2.5 py-1.5 rounded-lg text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer border-t border-slate-50 pt-2"
+                          key={view}
+                          onClick={() => handleNav(view)}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-left transition-all cursor-pointer ${
+                            activeView === view
+                              ? 'bg-[#0284c7] text-white'
+                              : 'text-slate-700 hover:bg-slate-50'
+                          }`}
                         >
-                          <LogOut className="w-3.5 h-3.5" />
-                          <span>Sign Out</span>
+                          <Icon className={`w-3.5 h-3.5 shrink-0 ${activeView === view ? 'text-sky-200' : 'text-slate-400'}`} />
+                          <span className="flex-1">{label}</span>
                         </button>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ) : (
-              <>
-                {/* Sign in Text */}
+                      ))}
+                    </div>
+
+                    {/* User section */}
+                    {currentUser ? (
+                      <div className="border-t border-slate-100 p-2 space-y-0.5">
+                        <div className="flex items-center gap-2.5 px-3 py-1.5">
+                          <img
+                            src={currentUser.photoUrl}
+                            alt={currentUser.firstName}
+                            className="w-7 h-7 rounded-full object-cover border-2 border-[#0284c7]"
+                          />
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-900 truncate">
+                              {currentUser.firstName} {currentUser.lastName}
+                            </p>
+                            <p className="text-[10px] text-slate-400 truncate">{currentUser.username}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleNav('profile')}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                        >
+                          <User className="w-3.5 h-3.5 text-slate-400" />
+                          View Profile
+                        </button>
+                        {onLogout && (
+                          <button
+                            onClick={() => { setUserMenuOpen(false); onLogout(); }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 cursor-pointer"
+                          >
+                            <LogOut className="w-3.5 h-3.5" />
+                            Sign Out
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="border-t border-slate-100 p-2 flex gap-2">
+                        <button
+                          onClick={() => { setUserMenuOpen(false); onOpenAuth('signin'); }}
+                          className="flex-1 py-2 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer"
+                        >
+                          Sign In
+                        </button>
+                        <button
+                          onClick={() => { setUserMenuOpen(false); onOpenAuth('signup'); }}
+                          className="flex-1 py-2 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold text-xs cursor-pointer"
+                        >
+                          Sign Up
+                        </button>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* User avatar shortcut (if logged in) */}
+            {currentUser && (
+              <img
+                src={currentUser.photoUrl}
+                alt={currentUser.firstName}
+                onClick={() => handleNav('profile')}
+                className="w-8 h-8 rounded-full object-cover border-2 border-[#0284c7] cursor-pointer hover:opacity-80 transition-opacity"
+                title={`${currentUser.firstName} — View Profile`}
+              />
+            )}
+
+            {/* Sign In / Sign Up if not logged in */}
+            {!currentUser && (
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => onOpenAuth('signin')}
-                  className="text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                  className="text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
                 >
                   Sign In
                 </button>
-
-                {/* Sign Up Blue Button */}
                 <button
                   onClick={() => onOpenAuth('signup')}
                   id="nav-signup-btn"
-                  className="px-4 sm:px-5 py-1.5 sm:py-2 rounded-full bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs sm:text-sm font-bold shadow-sm transition-all hover:shadow-md cursor-pointer"
+                  className="px-4 py-1.5 rounded-full bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-bold shadow-sm transition-all hover:shadow-md cursor-pointer"
                 >
                   Sign Up
                 </button>
-              </>
+              </div>
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="flex md:hidden items-center gap-3">
+          {/* ── Mobile: Wishlist + Hamburger ── */}
+          <div className="flex md:hidden items-center gap-2">
             <button
               onClick={onOpenWishlist}
-              className="relative p-2 text-slate-600"
+              className="relative p-2 text-slate-600 rounded-xl"
             >
               <Heart className="w-5 h-5" />
               {wishlistCount > 0 && (
@@ -305,114 +283,87 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-slate-700 hover:text-slate-900 cursor-pointer"
+              className="p-2 text-slate-700 hover:text-slate-900 rounded-xl hover:bg-slate-100 cursor-pointer"
               aria-label="Toggle menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
 
         </div>
+      </div>
 
-        {/* Mobile Dropdown Menu */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="md:hidden pt-4 pb-6 border-t border-slate-100 mt-3 space-y-3"
-            >
-              <div className="flex flex-col space-y-2">
-                <a
-                  href="#"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-3 py-2 rounded-xl text-sm font-bold text-slate-900 bg-slate-50"
+      {/* ── Mobile Full Dropdown ── */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden border-t border-slate-100 bg-white overflow-hidden"
+          >
+            <div className="max-w-7xl mx-auto px-4 py-3 space-y-1">
+              {NAV_ITEMS.map(({ view, label, icon: Icon }) => (
+                <button
+                  key={view}
+                  onClick={() => handleNav(view)}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-left transition-all cursor-pointer ${
+                    activeView === view
+                      ? 'bg-[#0284c7] text-white'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
                 >
-                  Home
-                </a>
-                <a
-                  href="#tickets"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50"
-                >
-                  Ticket
-                </a>
-                <a
-                  href="#explore"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50"
-                >
-                  Explore
-                </a>
-                <a
-                  href="#activity"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50"
-                >
-                  Activity
-                </a>
-              </div>
+                  <Icon className={`w-4 h-4 shrink-0 ${activeView === view ? 'text-sky-200' : 'text-slate-400'}`} />
+                  <span className="flex-1">{label}</span>
+                </button>
+              ))}
 
-              <div className="pt-3 border-t border-slate-100 flex items-center gap-3">
+              {/* Auth row */}
+              <div className="pt-2 border-t border-slate-100">
                 {currentUser ? (
-                  <div className="w-full space-y-2">
-                    <div className="flex items-center gap-3 px-2 py-1">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-3 px-4 py-2">
                       <img
                         src={currentUser.photoUrl}
                         alt={currentUser.firstName}
-                        className="w-9 h-9 rounded-full object-cover border border-[#0284c7]"
+                        className="w-9 h-9 rounded-full object-cover border-2 border-[#0284c7]"
                       />
                       <div>
-                        <p className="text-xs font-bold text-slate-900">
-                          {currentUser.firstName} {currentUser.lastName}
-                        </p>
-                        <p className="text-[10px] text-slate-400">
-                          {currentUser.city}, {currentUser.country}
-                        </p>
+                        <p className="text-sm font-bold text-slate-900">{currentUser.firstName} {currentUser.lastName}</p>
+                        <p className="text-xs text-slate-400">{currentUser.city}, {currentUser.country}</p>
                       </div>
                     </div>
                     {onLogout && (
                       <button
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                          onLogout();
-                        }}
-                        className="w-full py-2.5 rounded-xl border border-rose-200 text-rose-600 font-bold text-xs flex items-center justify-center gap-2"
+                        onClick={() => { setMobileMenuOpen(false); onLogout(); }}
+                        className="w-full py-2.5 rounded-xl border border-rose-200 text-rose-600 font-bold text-sm flex items-center justify-center gap-2"
                       >
                         <LogOut className="w-4 h-4" />
-                        <span>Sign Out</span>
+                        Sign Out
                       </button>
                     )}
                   </div>
                 ) : (
-                  <>
+                  <div className="flex gap-2">
                     <button
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        onOpenAuth('signin');
-                      }}
-                      className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs"
+                      onClick={() => { setMobileMenuOpen(false); onOpenAuth('signin'); }}
+                      className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-sm"
                     >
                       Sign In
                     </button>
                     <button
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        onOpenAuth('signup');
-                      }}
-                      className="flex-1 py-2.5 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold text-xs"
+                      onClick={() => { setMobileMenuOpen(false); onOpenAuth('signup'); }}
+                      className="flex-1 py-2.5 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold text-sm"
                     >
                       Sign Up
                     </button>
-                  </>
+                  </div>
                 )}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-      </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 };
