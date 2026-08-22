@@ -33,7 +33,14 @@ Request:
 ```
 Response `201`:
 ```json
-{ "user": { "id": 1, "name": "Ada Lovelace", "email": "ada@example.com" }, "token": "..." }
+{
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Ada Lovelace",
+    "email": "ada@example.com"
+  },
+  "token": "..."
+}
 ```
 
 ### POST `/api/auth/login`
@@ -56,7 +63,7 @@ Response: current user object (see User shape below).
 | Method | Route | Auth | Purpose |
 |---|---|---|---|
 | GET | `/api/users/me` | 🔒 | Profile + settings |
-| PATCH | `/api/users/me` | 🔒 | Update name / photo / language |
+| PATCH | `/api/users/me` | 🔒 | Update name / photo |
 | DELETE | `/api/users/me` | 🔒 | Delete account |
 | POST | `/api/users/me/avatar` | 🔒 | Upload profile photo (`multipart/form-data`) |
 | GET | `/api/users/me/saved-destinations` | 🔒 | List saved destinations |
@@ -66,17 +73,18 @@ Response: current user object (see User shape below).
 ### User shape
 ```json
 {
-  "id": 1,
+  "id": "550e8400-e29b-41d4-a716-446655440000",
   "name": "Ada Lovelace",
   "email": "ada@example.com",
   "avatarUrl": "https://...",
-  "language": "en",
   "createdAt": "2026-08-22T10:00:00Z"
 }
 ```
 
+> `language` is not stored server-side — i18n preference is handled client-side.
+
 ### PATCH `/api/users/me`
-Request (any subset): `{ "name": "...", "language": "en" }` → `200` updated user.
+Request (any subset): `{ "name": "..." }` → `200` updated user.
 
 ### DELETE `/api/users/me`
 Request: `{ "password": "..." }` (confirm) → `204`. Cascades to all trips/stops/activities.
@@ -85,7 +93,14 @@ Request: `{ "password": "..." }` (confirm) → `204`. Cascades to all trips/stop
 `multipart/form-data` field `file` → `200` `{ "avatarUrl": "..." }`
 
 ### Saved destinations
-POST body: `{ "cityId": 42 }` → `201` `{ "id": 7, "cityId": 42, "city": {...} }`
+POST body: `{ "cityId": "550e8400-e29b-41d4-a716-446655440001" }` → `201`
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440002",
+  "cityId": "550e8400-e29b-41d4-a716-446655440001",
+  "city": { ... }
+}
+```
 
 ---
 
@@ -108,7 +123,7 @@ POST body: `{ "cityId": 42 }` → `201` `{ "id": 7, "cityId": 42, "city": {...} 
 ### Trip shape
 ```json
 {
-  "id": 1,
+  "id": "550e8400-e29b-41d4-a716-446655440000",
   "name": "Summer Europe 2026",
   "description": "...",
   "startDate": "2026-07-01",
@@ -116,7 +131,7 @@ POST body: `{ "cityId": 42 }` → `201` `{ "id": 7, "cityId": 42, "city": {...} 
   "coverUrl": "https://...",
   "isPublic": false,
   "shareToken": "abc123xyz",
-  "ownerId": 1,
+  "ownerId": "550e8400-e29b-41d4-a716-446655440001",
   "stopCount": 4,
   "createdAt": "2026-08-22T10:00:00Z"
 }
@@ -142,12 +157,28 @@ Generating a fresh opaque token on each enable re-issues the URL; disabling revo
 Response:
 ```json
 {
-  "trip": { ... },
+  "trip": { "..." : "..." },
   "stops": [
     {
-      "id": 10, "cityId": 42, "city": {...},
-      "startDate": "2026-07-01", "endDate": "2026-07-04", "order": 0,
-      "activities": [ { "id": 100, "activityId": 555, "date": "2026-07-02", "time": "10:00", "note": "..." } ]
+      "id": "550e8400-e29b-41d4-a716-446655440010",
+      "cityId": "550e8400-e29b-41d4-a716-446655440042",
+      "city": { "..." : "..." },
+      "startDate": "2026-07-01",
+      "endDate": "2026-07-04",
+      "position": 0,
+      "activities": [
+        {
+          "id": "550e8400-e29b-41d4-a716-446655440100",
+          "otmPlaceId": "W1823849028",
+          "name": "Louvre Museum",
+          "type": "museum",
+          "date": "2026-07-02",
+          "startTime": "10:00",
+          "endTime": "13:00",
+          "plannedCost": 22,
+          "note": "Book tickets in advance"
+        }
+      ]
     }
   ]
 }
@@ -170,7 +201,19 @@ Day-wise layout for the calendar/timeline view:
 ```json
 {
   "days": [
-    { "date": "2026-07-01", "stopId": 10, "city": {...}, "items": [ { "activityId": 100, "time": "10:00", "title": "...", "cost": 25 } ] }
+    {
+      "date": "2026-07-01",
+      "stopId": "550e8400-e29b-41d4-a716-446655440010",
+      "city": { "..." : "..." },
+      "items": [
+        {
+          "otmPlaceId": "W1823849028",
+          "startTime": "10:00",
+          "title": "Louvre Museum",
+          "cost": 22
+        }
+      ]
+    }
   ]
 }
 ```
@@ -190,10 +233,28 @@ Nested under trips for clear ownership and auth scoping.
 | PATCH | `/api/trips/:tripId/stops/reorder` | 🔒 | Reorder cities |
 
 ### POST `/api/trips/:tripId/stops`
-Request: `{ "cityId": 42, "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD" }` → `201` stop.
+Request:
+```json
+{
+  "cityId": "550e8400-e29b-41d4-a716-446655440042",
+  "startDate": "YYYY-MM-DD",
+  "endDate": "YYYY-MM-DD"
+}
+```
+→ `201` stop.
 
 ### PATCH `/api/trips/:tripId/stops/reorder`
-Request: `{ "order": [12, 10, 11] }` (stop IDs in desired sequence) → `200` updated stops list.
+Request:
+```json
+{
+  "order": [
+    "550e8400-e29b-41d4-a716-446655440012",
+    "550e8400-e29b-41d4-a716-446655440010",
+    "550e8400-e29b-41d4-a716-446655440011"
+  ]
+}
+```
+→ `200` updated stops list.
 
 ---
 
@@ -207,8 +268,22 @@ Request: `{ "order": [12, 10, 11] }` (stop IDs in desired sequence) → `200` up
 | DELETE | `.../activities/:id` | 🔒 | Remove activity from stop |
 
 ### POST `.../activities`
-Request: `{ "activityId": 555, "date": "YYYY-MM-DD", "time": "10:00", "note": "Book ahead" }` → `201`
-`activityId` references a row in our activities catalog (see §7); if it came from OpenTripMap it is cached/created server-side via the proxy.
+The client sends the OTM place ID and snapshots the key fields at save time so the itinerary is resilient to upstream API changes.
+
+Request:
+```json
+{
+  "otmPlaceId": "W1823849028",
+  "name": "Louvre Museum",
+  "type": "museum",
+  "date": "YYYY-MM-DD",
+  "startTime": "10:00",
+  "endTime": "13:00",
+  "plannedCost": 22,
+  "note": "Book tickets in advance"
+}
+```
+→ `201` planned activity.
 
 ---
 
@@ -218,20 +293,22 @@ Request: `{ "activityId": 555, "date": "YYYY-MM-DD", "time": "10:00", "note": "B
 |---|---|---|---|
 | GET | `/api/cities` | 🔒 | Search (`?q=&country=&region=&limit=&offset=`) |
 | GET | `/api/cities/popular` | 🔒 | Recommended destinations |
-| GET | `/api/cities/:id` | 🔒 | City detail (country, cost index, popularity) |
+| GET | `/api/cities/:id` | 🔒 | City detail (country, cost index) |
 
 `GET /api/cities?q=paris&country=FR` → paginated cities. Backed by our DB; enriched/seeded from OpenTripMap `geoname` resolution (see §9).
 
 ---
 
-## 7. Activities catalog — `/api/activities`
+## 7. Activities — `/api/activities`
 
 | Method | Route | Auth | Purpose |
 |---|---|---|---|
-| GET | `/api/activities` | 🔒 | Search (`?q=&cityId=&type=&cost=&duration=&limit=&offset=`) |
+| GET | `/api/activities` | 🔒 | Search (`?q=&cityId=&type=&limit=&offset=`) |
 | GET | `/api/activities/:id` | 🔒 | Activity detail (description, images, kind) |
 
-`GET /api/activities?cityId=42&type=sightseeing&cost=low` → paginated list. Server proxies to OpenTripMap when results are missing/stale and caches normalized rows (see §9).
+`GET /api/activities?cityId=550e8400-e29b-41d4-a716-446655440042&type=sightseeing` → paginated list.
+
+These routes are **proxy endpoints** — there is no local activities table. The server forwards requests to OpenTripMap (`radius` / `autosuggest` calls), normalizes the response, and returns it directly to the client. Results are **not persisted**; only the fields the user explicitly schedules are snapshotted into `planned_activities` via `POST .../stops/:stopId/activities`.
 
 ---
 
@@ -247,9 +324,10 @@ Opaque, unguessable token (issued via `PATCH /api/trips/:id/sharing`). Returns t
 
 ## 9. Third-party integration — OpenTripMap
 
-OpenTripMap provides ~10M tourist POIs from OSM/Wikidata/Wikipedia (ODbL — cacheable, no map restriction). Base URL `https://api.opentripmap.com/0.1/en/places/`, auth via `apikey` query param. Our server wraps it so the API key stays server-side and results are cached/normalized into our `cities`/`activities` tables.
+OpenTripMap provides ~10M tourist POIs from OSM/Wikidata/Wikipedia (ODbL — cacheable, no map restriction). Base URL `https://api.opentripmap.com/0.1/en/places/`, auth via `apikey` query param. Our server wraps it so the API key stays server-side.
 
 ### OpenTripMap methods used
+
 | Method | Upstream call | Purpose |
 |---|---|---|
 | geoname | `places/geoname?name=<city>` → `{lon, lat, country}` | Resolve a city to coordinates |
@@ -260,16 +338,15 @@ OpenTripMap provides ~10M tourist POIs from OSM/Wikidata/Wikipedia (ODbL — cac
 ### Our proxy endpoints (internal, exposed via §6/§7)
 These are not public REST routes but document the server-side flow:
 
-- **City resolution**: when a city is added/selected, server calls `geoname`, caches `{cityId, name, country, lat, lon, costIndex, popularity}` into `cities`.
-- **Activity discovery**: `GET /api/activities?cityId=` calls `geoname` (or uses cached coords) then `radius`, filters by `kinds`/`rate`, normalizes and caches rows into `activities` with `{activityId, xid, cityId, name, kinds, rate, previewUrl, wikipediaExtract, otmUrl}`.
-- **Activity detail**: `GET /api/activities/:id` returns cached row, lazy-fetching `xid` details from OpenTripMap on cache miss.
+- **City resolution**: when a city is added/selected, server calls `geoname` and caches `{ name, country, lat, lon, costIndex }` into the `cities` table.
+- **Activity discovery**: `GET /api/activities?cityId=` calls `geoname` (or uses cached coords) then `radius`, filters by `kinds`/`rate`, normalizes the result, and returns it to the client. Results are **not written to any local table** — they are live OTM data.
+- **Activity detail**: `GET /api/activities/:id` proxies to the OTM `xid` endpoint and returns `{ otmPlaceId, name, kinds, previewUrl, wikipediaExtract, otmUrl }` directly. When the user schedules the activity, the client POSTs the relevant snapshot fields to `planned_activities` (see §5).
 
 ### Mapping to our filters
 - `type` filter → OpenTripMap `kinds` (hierarchical category catalog at `dev.opentripmap.org/catalog`).
-- `cost` / `duration` → **not provided by OpenTripMap**. Estimated server-side via heuristics (kinds-based default ranges) or a secondary source; stored on our `activities` rows. Flagged as a known gap for the cost breakdown feature (#9 of the description).
+- `cost` / `duration` → **not provided by OpenTripMap**. Estimated server-side via heuristics (kinds-based default ranges) or a secondary source. Flagged as a known gap for the cost breakdown feature.
 
 ### Env
 ```
 OPENTRIPMAP_API_KEY=...
 ```
-Caching TTL and rate-limit handling are configured server-side.
