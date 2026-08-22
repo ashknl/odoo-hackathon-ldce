@@ -4,6 +4,11 @@ import express from "express";
 import cors from "cors";
 
 import authRoutes from "./routes/auth.routes.js";
+import userRoutes from "./routes/user.routes.js";
+import tripRoutes from "./routes/trip.routes.js";
+import cityRoutes from "./routes/city.routes.js";
+import activityRoutes from "./routes/activity.routes.js";
+import publicRoutes from "./routes/public.routes.js";
 
 const app = express();
 
@@ -26,6 +31,31 @@ app.get("/", (req, res) => {
 app.use(
   "/api/auth",
   authRoutes
+);
+
+app.use(
+  "/api/users",
+  userRoutes
+);
+
+app.use(
+  "/api/trips",
+  tripRoutes
+);
+
+app.use(
+  "/api/cities",
+  cityRoutes
+);
+
+app.use(
+  "/api/activities",
+  activityRoutes
+);
+
+app.use(
+  "/api/public",
+  publicRoutes
 );
 
 app.listen(PORT, () => {
