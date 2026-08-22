@@ -136,7 +136,7 @@ export const TopRegionalSelections: React.FC<TopRegionalSelectionsProps> = ({
               </span>
 
               <span className="text-[10px] font-bold text-white/90 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20">
-                ₹{city.cost_index.toLocaleString('en-IN')}/day
+                ₹{(city.costIndex ?? city.cost_index).toLocaleString('en-IN')}/day
               </span>
             </div>
 

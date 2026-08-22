@@ -1,306 +1,322 @@
-import { User, City, Trip, TripCollaborator, YearlyWishlistItem } from '../types/schema';
+import {
+  User,
+  City,
+  Trip,
+  YearlyWishlistItem,
+  TripCollaborator,
+} from '../types/schema';
 
+// 1. Current Active User matching `users` table
 export const CURRENT_HOME_USER: User = {
-  id: 'usr-mallik-001',
+  id: '550e8400-e29b-41d4-a716-446655440000',
   name: 'Mallik Cheripally',
   email: 'mallik@globetrotter.io',
-  profile_image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-  level: 'Beginner',
+  profile_image:
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+  avatarUrl:
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+  level: 'Beginner Explorer',
   badges: 3,
   points: 85,
-  created_at: '2025-01-10T08:00:00Z',
-  updated_at: '2026-08-20T10:00:00Z'
+  created_at: '2026-08-01T10:00:00Z',
+  createdAt: '2026-08-01T10:00:00Z',
 };
 
+// 2. Cities Catalog matching `cities` table
 export const POPULAR_CITIES: City[] = [
   {
-    id: 'city-munnar',
+    id: '550e8400-e29b-41d4-a716-446655440001',
     name: 'Munnar',
     country: 'India',
     region: 'Kerala',
-    description: 'Rolling green tea plantations, misty valleys, and crisp mountain air in God\'s Own Country.',
-    image: 'https://images.unsplash.com/photo-1593693397690-362cb9666fc2?auto=format&fit=crop&w=800&q=80',
-    cost_index: 2500,
+    description: 'Rolling tea gardens, misty hill stations, and scenic valleys.',
+    image:
+      'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=800&q=80',
+    cost_index: 3500,
+    costIndex: 3500,
     latitude: 10.0889,
     longitude: 77.0595,
-    rating: 4.7,
-    reviewCount: 342,
-    tags: ['Recommended', 'Kerala', 'Road-trip', 'Romantic']
+    rating: 4.8,
+    tags: ['Recommended', 'Kerala', 'Nature'],
   },
   {
-    id: 'city-houseboat',
-    name: 'House Boat',
-    country: 'India',
-    region: 'Kerala',
-    description: 'Tranquil luxury backwater cruises through Alleppey with private chefs and sunset views.',
-    image: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=800&q=80',
-    cost_index: 4500,
-    latitude: 9.4981,
-    longitude: 76.3388,
-    rating: 4.5,
-    reviewCount: 512,
-    tags: ['Recommended', 'Kerala', 'Romantic']
-  },
-  {
-    id: 'city-goa',
-    name: 'Goa Beach',
+    id: '550e8400-e29b-41d4-a716-446655440002',
+    name: 'Palolem Beach',
     country: 'India',
     region: 'Goa',
-    description: 'Golden sandy beaches, vibrant shacks, Portuguese heritage, and watersports.',
-    image: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80',
-    cost_index: 3200,
-    latitude: 15.2993,
-    longitude: 74.1240,
-    rating: 4.4,
-    reviewCount: 890,
-    tags: ['Goa', 'Exciting', 'Road-trip']
+    description: 'Golden palm-fringed sands, sunset cruises, and vibrant nightlife.',
+    image:
+      'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80',
+    cost_index: 4200,
+    costIndex: 4200,
+    latitude: 15.01,
+    longitude: 74.023,
+    rating: 4.9,
+    tags: ['Recommended', 'Goa', 'Coastal & Island'],
   },
   {
-    id: 'city-ooty',
-    name: 'Tea Plantation',
-    country: 'India',
-    region: 'Ooty',
-    description: 'Scenic Nilgiri mountain rail rides, sprawling tea gardens, and cool climate retreats.',
-    image: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=800&q=80',
-    cost_index: 2800,
-    latitude: 11.4102,
-    longitude: 76.6950,
-    rating: 4.6,
-    reviewCount: 278,
-    tags: ['Best of 2019', 'Recommended', 'Road-trip']
-  },
-  {
-    id: 'city-ladakh',
-    name: 'Ladakh',
+    id: '550e8400-e29b-41d4-a716-446655440003',
+    name: 'Leh & Pangong',
     country: 'India',
     region: 'Ladakh',
-    description: 'High-altitude mountain passes, azure Pangong Tso lake, and ancient Buddhist monasteries.',
-    image: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=800&q=80',
-    cost_index: 5500,
+    description: 'High-altitude mountain passes, crystal lakes, and ancient monasteries.',
+    image:
+      'https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?auto=format&fit=crop&w=800&q=80',
+    cost_index: 6800,
+    costIndex: 6800,
     latitude: 34.1526,
     longitude: 77.5771,
     rating: 4.9,
-    reviewCount: 610,
-    tags: ['Ladakh', 'Adventurous', 'Exciting']
+    tags: ['Recommended', 'Ladakh', 'Adventurous'],
   },
   {
-    id: 'city-andaman',
+    id: '550e8400-e29b-41d4-a716-446655440004',
     name: 'Havelock Island',
     country: 'India',
     region: 'Andaman',
-    description: 'Pristine Radhanagar Beach, turquoise waters, scuba diving, and coral reef exploration.',
-    image: 'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=800&q=80',
-    cost_index: 6200,
+    description: 'Turquoise waters, scuba diving, and white sandy beaches.',
+    image:
+      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
+    cost_index: 8500,
+    costIndex: 8500,
     latitude: 11.9761,
     longitude: 92.9876,
-    rating: 4.8,
-    reviewCount: 415,
-    tags: ['Andaman', 'Romantic', 'Exciting']
+    rating: 4.7,
+    tags: ['Recommended', 'Andaman', 'Romantic'],
   },
   {
-    id: 'city-rishikesh',
-    name: 'Rishikesh',
+    id: '550e8400-e29b-41d4-a716-446655440005',
+    name: 'Rishikesh Valley',
     country: 'India',
     region: 'Rishikesh',
-    description: 'Yoga capital of the world with white water rafting on the holy Ganges River.',
-    image: 'https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?auto=format&fit=crop&w=800&q=80',
-    cost_index: 1800,
+    description: 'Ganges river rafting, yoga retreats, and Himalayan foothills.',
+    image:
+      'https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=800&q=80',
+    cost_index: 2900,
+    costIndex: 2900,
     latitude: 30.0869,
     longitude: 78.2676,
     rating: 4.6,
-    reviewCount: 730,
-    tags: ['Rishikesh', 'Adventurous']
+    tags: ['Rishikesh', 'Adventurous', 'Exciting'],
   },
   {
-    id: 'city-paris',
-    name: 'Paris',
-    country: 'France',
+    id: '550e8400-e29b-41d4-a716-446655440006',
+    name: 'Santorini',
+    country: 'Greece',
     region: 'World',
-    description: 'The City of Light featuring Eiffel Tower, Louvre Museum, and romantic Seine cruises.',
-    image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80',
-    cost_index: 12000,
-    latitude: 48.8566,
-    longitude: 2.3522,
+    description: 'Whitewashed cliffside villas and Mediterranean sunsets.',
+    image:
+      'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?auto=format&fit=crop&w=800&q=80',
+    cost_index: 18500,
+    costIndex: 18500,
+    latitude: 36.3932,
+    longitude: 25.4615,
     rating: 4.9,
-    reviewCount: 1540,
-    tags: ['World', 'Romantic']
-  }
+    tags: ['World', 'Romantic'],
+  },
 ];
 
+// 3. User Upcoming Trip Ticket Data matching `trips`, `trip_stops`, `cities`
 export const UPCOMING_TRIP_DATA: Trip = {
-  id: 'trip-upcoming-001',
+  id: '550e8400-e29b-41d4-a716-446655440010',
   user_id: CURRENT_HOME_USER.id,
-  name: 'Munnar & Kerala Hills Expedition',
-  description: 'Relaxing 3 days / 4 nights trip through tea gardens, spice plantations, and serene hills.',
-  cover_image: 'https://images.unsplash.com/photo-1593693397690-362cb9666fc2?auto=format&fit=crop&w=800&q=80',
+  ownerId: CURRENT_HOME_USER.id,
+  name: 'Kerala & Munnar Getaway',
+  description: 'Holiday trip to Munnar tea plantations and Alleppey backwaters.',
+  cover_image:
+    'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1200&q=80',
+  coverUrl:
+    'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1200&q=80',
   start_date: '2026-12-25',
-  end_date: '2026-12-29',
-  budget: 36000,
+  startDate: '2026-12-25',
+  end_date: '2026-12-28',
+  endDate: '2026-12-28',
+  budget: 45000,
   status: 'UPCOMING',
   is_public: true,
-  share_slug: 'munnar-kerala-dec25',
-  created_at: '2026-08-01T10:00:00Z',
-  updated_at: '2026-08-15T12:00:00Z',
+  isPublic: true,
+  share_slug: 'kerala-munnar-2026',
+  shareToken: 'kerala-munnar-2026',
+  stop_count: 2,
   stops: [
     {
-      id: 'stop-01',
-      trip_id: 'trip-upcoming-001',
-      city_id: 'city-hyderabad',
+      id: '550e8400-e29b-41d4-a716-446655440101',
+      trip_id: '550e8400-e29b-41d4-a716-446655440010',
+      tripId: '550e8400-e29b-41d4-a716-446655440010',
+      city_id: '550e8400-e29b-41d4-a716-446655440001',
+      cityId: '550e8400-e29b-41d4-a716-446655440001',
+      city: POPULAR_CITIES[0],
       start_date: '2026-12-25',
-      end_date: '2026-12-25',
+      startDate: '2026-12-25',
+      end_date: '2026-12-27',
+      endDate: '2026-12-27',
       position: 1,
-      budget: 5000,
-      notes: 'Flight departure from Rajiv Gandhi Intl Airport',
-      city: {
-        id: 'city-hyderabad',
-        name: 'Hyderabad',
-        country: 'India',
-        region: 'Telangana',
-        description: 'City of Pearls',
-        image: 'https://images.unsplash.com/photo-1605379399642-870262d3d051?auto=format&fit=crop&w=800&q=80',
-        cost_index: 2000,
-        latitude: 17.3850,
-        longitude: 78.4867
-      }
+      budget: 25000,
+      activities: [
+        {
+          id: '550e8400-e29b-41d4-a716-446655440201',
+          trip_stop_id: '550e8400-e29b-41d4-a716-446655440101',
+          tripStopId: '550e8400-e29b-41d4-a716-446655440101',
+          otm_place_id: 'W1823849028',
+          otmPlaceId: 'W1823849028',
+          name: 'Tea Museum & Garden Trek',
+          type: 'museum',
+          date: '2026-12-26',
+          start_time: '09:00',
+          startTime: '09:00',
+          end_time: '12:00',
+          endTime: '12:00',
+          planned_cost: 450,
+          plannedCost: 450,
+          position: 1,
+        },
+      ],
     },
-    {
-      id: 'stop-02',
-      trip_id: 'trip-upcoming-001',
-      city_id: 'city-munnar',
-      start_date: '2026-12-25',
-      end_date: '2026-12-29',
-      position: 2,
-      budget: 31000,
-      notes: 'Resort stay at Tea Valley',
-      city: POPULAR_CITIES[0]
-    }
-  ]
+  ],
 };
 
+// 4. User Trips History List matching `trips` table
 export const USER_PREVIOUS_TRIPS: Trip[] = [
   UPCOMING_TRIP_DATA,
   {
-    id: 'trip-past-001',
+    id: '550e8400-e29b-41d4-a716-446655440020',
     user_id: CURRENT_HOME_USER.id,
-    name: 'Goa Coastal Getaway',
-    description: 'Beach hopping, water sports, and Portuguese heritage exploration in South Goa.',
-    cover_image: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80',
-    start_date: '2026-11-10',
-    end_date: '2026-11-15',
-    budget: 28000,
+    ownerId: CURRENT_HOME_USER.id,
+    name: 'Goa Coastal Roadtrip',
+    description: 'Beach hopping, fort exploring, and sunset dinner cruises in North & South Goa.',
+    cover_image:
+      'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1200&q=80',
+    coverUrl:
+      'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1200&q=80',
+    start_date: '2026-10-10',
+    startDate: '2026-10-10',
+    end_date: '2026-10-15',
+    endDate: '2026-10-15',
+    budget: 38000,
     status: 'COMPLETED',
     is_public: true,
-    share_slug: 'goa-coastal-nov26',
-    created_at: '2026-10-01T08:00:00Z',
+    isPublic: true,
+    share_slug: 'goa-coastal-roadtrip-2026',
+    shareToken: 'goa-coastal-roadtrip-2026',
+    stop_count: 1,
     stops: [
       {
-        id: 'stop-goa-1',
-        trip_id: 'trip-past-001',
-        city_id: 'city-goa',
-        start_date: '2026-11-10',
-        end_date: '2026-11-15',
+        id: '550e8400-e29b-41d4-a716-446655440102',
+        trip_id: '550e8400-e29b-41d4-a716-446655440020',
+        tripId: '550e8400-e29b-41d4-a716-446655440020',
+        city_id: '550e8400-e29b-41d4-a716-446655440002',
+        cityId: '550e8400-e29b-41d4-a716-446655440002',
+        city: POPULAR_CITIES[1],
+        start_date: '2026-10-10',
+        startDate: '2026-10-10',
+        end_date: '2026-10-15',
+        endDate: '2026-10-15',
         position: 1,
-        budget: 28000,
-        city: POPULAR_CITIES[2]
-      }
-    ]
+        budget: 38000,
+        activities: [],
+      },
+    ],
   },
   {
-    id: 'trip-past-002',
+    id: '550e8400-e29b-41d4-a716-446655440030',
     user_id: CURRENT_HOME_USER.id,
-    name: 'Ladakh High Passes Roadtrip',
-    description: 'Conquering Khardung La, camping at Pangong Tso lake, and visiting Nubra Valley.',
-    cover_image: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=800&q=80',
-    start_date: '2026-08-15',
-    end_date: '2026-08-25',
-    budget: 55000,
-    status: 'ONGOING',
+    ownerId: CURRENT_HOME_USER.id,
+    name: 'Ladakh High Pass Expedition',
+    description: 'Motorcycle journey through Khardung La, Nubra Valley, and Pangong Tso.',
+    cover_image:
+      'https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?auto=format&fit=crop&w=1200&q=80',
+    coverUrl:
+      'https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?auto=format&fit=crop&w=1200&q=80',
+    start_date: '2026-08-01',
+    startDate: '2026-08-01',
+    end_date: '2026-08-08',
+    endDate: '2026-08-08',
+    budget: 72000,
+    status: 'COMPLETED',
     is_public: true,
+    isPublic: true,
     share_slug: 'ladakh-expedition-2026',
-    created_at: '2026-07-15T09:00:00Z',
+    shareToken: 'ladakh-expedition-2026',
+    stop_count: 1,
     stops: [
       {
-        id: 'stop-ladakh-1',
-        trip_id: 'trip-past-002',
-        city_id: 'city-ladakh',
-        start_date: '2026-08-15',
-        end_date: '2026-08-25',
+        id: '550e8400-e29b-41d4-a716-446655440103',
+        trip_id: '550e8400-e29b-41d4-a716-446655440030',
+        tripId: '550e8400-e29b-41d4-a716-446655440030',
+        city_id: '550e8400-e29b-41d4-a716-446655440003',
+        cityId: '550e8400-e29b-41d4-a716-446655440003',
+        city: POPULAR_CITIES[2],
+        start_date: '2026-08-01',
+        startDate: '2026-08-01',
+        end_date: '2026-08-08',
+        endDate: '2026-08-08',
         position: 1,
-        budget: 55000,
-        city: POPULAR_CITIES[4]
-      }
-    ]
+        budget: 72000,
+        activities: [],
+      },
+    ],
   },
-  {
-    id: 'trip-past-003',
-    user_id: CURRENT_HOME_USER.id,
-    name: 'Rishikesh Spiritual & Rafting Trail',
-    description: 'White water rafting, Ganga Aarti at Triveni Ghat, and cliff jumping in Shivpuri.',
-    cover_image: 'https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?auto=format&fit=crop&w=800&q=80',
-    start_date: '2026-05-01',
-    end_date: '2026-05-05',
-    budget: 18000,
-    status: 'COMPLETED',
-    is_public: false,
-    share_slug: 'rishikesh-rafting-may26',
-    created_at: '2026-04-10T11:00:00Z',
-    stops: [
-      {
-        id: 'stop-rishikesh-1',
-        trip_id: 'trip-past-003',
-        city_id: 'city-rishikesh',
-        start_date: '2026-05-01',
-        end_date: '2026-05-05',
-        position: 1,
-        budget: 18000,
-        city: POPULAR_CITIES[6]
-      }
-    ]
-  }
 ];
 
+// 5. Yearly Wishlist Widget Items
 export const YEARLY_WISHLIST: YearlyWishlistItem[] = [
-  { id: 'w1', title: 'To buy a coffee in Paris', completed: true },
-  { id: 'w2', title: 'To get to the Big Mountain in Ladakh', completed: false },
-  { id: 'w3', title: 'To eat at an authentic Japanese ramen house in Kyoto', completed: false },
-  { id: 'w4', title: 'To swim with sea turtles in Andaman', completed: false }
+  { id: 'w-1', title: 'Scuba dive in Havelock Island, Andaman', completed: false },
+  { id: 'w-2', title: 'Stay in a floating houseboat in Alleppey', completed: true },
+  { id: 'w-3', title: 'Watch sunrise over Pangong Tso Lake', completed: true },
+  { id: 'w-4', title: 'River rafting in Rishikesh Ganges', completed: false },
 ];
 
+// 6. Friends Trip Collaborators List matching `trip_collaborators` table
 export const FRIENDS_TRIP_COLLABORATORS: TripCollaborator[] = [
   {
     id: 'collab-1',
-    trip_id: 'trip-upcoming-001',
-    user_id: 'usr-mari',
+    trip_id: UPCOMING_TRIP_DATA.id,
+    tripId: UPCOMING_TRIP_DATA.id,
+    user_id: '550e8400-e29b-41d4-a716-446655440091',
+    userId: '550e8400-e29b-41d4-a716-446655440091',
     role: 'EDITOR',
     user: {
-      id: 'usr-mari',
-      name: 'Mari Fernandes',
-      email: 'mari@globetrotter.io',
-      profile_image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80'
-    }
+      id: '550e8400-e29b-41d4-a716-446655440091',
+      name: 'Aarav Sharma',
+      email: 'aarav@example.com',
+      profile_image:
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
+    },
   },
   {
     id: 'collab-2',
-    trip_id: 'trip-upcoming-001',
-    user_id: 'usr-lara',
-    role: 'VIEWER',
+    trip_id: UPCOMING_TRIP_DATA.id,
+    tripId: UPCOMING_TRIP_DATA.id,
+    user_id: '550e8400-e29b-41d4-a716-446655440092',
+    userId: '550e8400-e29b-41d4-a716-446655440092',
+    role: 'EDITOR',
     user: {
-      id: 'usr-lara',
-      name: 'Lara Olsen',
-      email: 'lara@globetrotter.io',
-      profile_image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80'
-    }
+      id: '550e8400-e29b-41d4-a716-446655440092',
+      name: 'Priya Patel',
+      email: 'priya@example.com',
+      profile_image:
+        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80',
+    },
   },
   {
     id: 'collab-3',
-    trip_id: 'trip-upcoming-001',
-    user_id: 'usr-eric',
-    role: 'EDITOR',
+    trip_id: UPCOMING_TRIP_DATA.id,
+    tripId: UPCOMING_TRIP_DATA.id,
+    user_id: '550e8400-e29b-41d4-a716-446655440093',
+    userId: '550e8400-e29b-41d4-a716-446655440093',
+    role: 'VIEWER',
     user: {
-      id: 'usr-eric',
-      name: 'Eric Garcia',
-      email: 'eric@globetrotter.io',
-      profile_image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80'
-    }
-  }
+      id: '550e8400-e29b-41d4-a716-446655440093',
+      name: 'Rohan Gupta',
+      email: 'rohan@example.com',
+      profile_image:
+        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
+      avatarUrl:
+        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
+    },
+  },
 ];

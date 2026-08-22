@@ -1,25 +1,33 @@
+/**
+ * GlobeTrotter Travel Interface Models
+ * Aligned with `globetrotter_schema.md` & `API.md`
+ */
+
+import { City, Trip, TripStop, PlannedActivity, TripExpense } from './schema';
+
 export type CostIndex = 'Budget' | 'Moderate' | 'High' | 'Luxury';
 export type TripCategory = 'Multi-City' | 'Cultural' | 'Culinary' | 'Nature & Scenic' | 'Urban & Modern' | 'Coastal & Island';
 
 export interface ActivityItem {
-  id: string;
+  id: string; // UUID (planned_activities.id)
   name: string;
-  category: 'Sightseeing' | 'Food & Dining' | 'Culture & Arts' | 'Adventure' | 'Day Trip';
+  category: string;
   cost: number;
-  duration: string; // e.g. "2-3 hrs"
-  rating: number;
-  description: string;
+  duration?: string;
+  rating?: number;
+  description?: string;
   includedInSample?: boolean;
+  otmPlaceId?: string;
 }
 
 export interface ItineraryStop {
-  id: string;
+  id: string; // UUID (trip_stops.id)
   cityName: string;
   country: string;
   days: number;
   order: number;
   image?: string;
-  lodgingEstimate: number;
+  lodgingEstimate?: number;
   activities: ActivityItem[];
 }
 
@@ -37,36 +45,36 @@ export interface ItineraryDay {
 }
 
 export interface Destination {
-  id: string;
+  id: string; // UUID (cities.id)
   title: string;
   subtitle: string;
   city: string;
   country: string;
-  countryCode: string;
+  countryCode?: string;
   region: string;
   costIndex: CostIndex;
-  popularityScore: number; // e.g. 96 (%)
-  idealDuration: string; // e.g. "5-7 Days"
-  avgDailyCost: number; // in USD
+  popularityScore?: number;
+  idealDuration?: string;
+  avgDailyCost: number; // cost_index
   rating: number;
-  reviewCount: number;
+  reviewCount?: number;
   priceFrom: number;
   originalPrice?: number;
   image: string;
-  gallery: string[];
+  gallery?: string[];
   tag: string;
   featured?: boolean;
   categories: TripCategory[];
   description: string;
-  bestSeason: string;
-  currency: string;
-  topActivities: ActivityItem[];
+  bestSeason?: string;
+  currency?: string;
+  topActivities?: ActivityItem[];
   sampleMultiCityStops?: string[];
-  itinerary: ItineraryDay[];
+  itinerary?: ItineraryDay[];
 }
 
 export interface TravelPackage {
-  id: string;
+  id: string; // UUID (trips.id)
   title: string;
   subtitle: string;
   category: TripCategory;
@@ -74,14 +82,14 @@ export interface TravelPackage {
   country: string;
   cities: string[];
   stopsCount: number;
-  price: number;
+  price: number; // budget
   originalPrice?: number;
   days: number;
   nights: number;
   avgCostPerDay: number;
   rating: number;
-  reviewCount: number;
-  copiedCount: number;
+  reviewCount?: number;
+  copiedCount?: number;
   author?: {
     name: string;
     avatar: string;
@@ -93,39 +101,8 @@ export interface TravelPackage {
     meals: number;
   };
   image: string;
-  inclusions: string[];
-  itinerary: ItineraryDay[];
-}
-
-export interface JournalEntry {
-  id: string;
-  title: string;
-  excerpt: string;
-  author: {
-    name: string;
-    avatar: string;
-    role: string;
-  };
-  date: string;
-  readTime: string;
-  image: string;
-  category: string;
-  location: string;
-  stops: string[];
-}
-
-export interface Testimonial {
-  id: string;
-  author: string;
-  avatar: string;
-  role: string;
-  location: string;
-  tripName: string;
-  rating: number;
-  quote: string;
-  verified: boolean;
-  savedMoney: string;
-  date: string;
+  inclusions?: string[];
+  itinerary?: ItineraryDay[];
 }
 
 export interface QuickFilterState {
@@ -142,8 +119,10 @@ export interface CustomTripPlan {
     cityName: string;
     country: string;
     days: number;
+    cityId?: string;
   }[];
   startDate: string;
+  endDate?: string;
   travelers: number;
   lodgingTier: 'budget' | 'comfort' | 'luxury';
   interests: string[];
@@ -158,33 +137,37 @@ export interface CustomTripPlan {
   };
 }
 
+// Cards UI interfaces directly mapped to `cities` schema
 export interface PopularPlace {
-  id: string;
+  id: string; // UUID (cities.id)
   name: string;
   location: string;
   discount: string;
   image: string;
-  price: number;
+  price: number; // cost_index
   rating: number;
   description: string;
+  cityId?: string;
 }
 
 export interface ExplorePlace {
-  id: string;
+  id: string; // UUID (cities.id)
   name: string;
   location: string;
-  pricePerPax: number;
+  pricePerPax: number; // cost_index
   rating: number;
   image: string;
   category: string;
   description: string;
+  cityId?: string;
 }
 
 export interface AdventureStamp {
-  id: string;
+  id: string; // UUID (cities.id)
   city: string;
   country: string;
   image: string;
   landmark: string;
   description: string;
+  cityId?: string;
 }

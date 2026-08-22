@@ -26,7 +26,7 @@ export const UserProfileSidebar: React.FC<UserProfileSidebarProps> = ({
         <div className="relative mb-3">
           <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-sky-500 via-blue-500 to-indigo-500 shadow-md">
             <img
-              src={user.profile_image}
+              src={user.avatarUrl || user.profile_image}
               alt={user.name}
               className="w-full h-full object-cover rounded-full border-2 border-white"
             />
