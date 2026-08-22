@@ -130,37 +130,7 @@ export const getCurrentUser = async (userId) => {
   return user;
 };
 
-
-export const deleteAccount = async ({
-  userId,
-  password,
-}) => {
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, userId));
-
-  if (!user) {
-    const error = new Error("User not found");
-    error.statusCode = 404;
-    throw error;
-  }
-
-  const passwordValid = await comparePassword(
-    password,
-    user.passwordHash
-  );
-
-  if (!passwordValid) {
-    const error = new Error("Invalid password");
-    error.statusCode = 401;
-    throw error;
-  }
-
-  await db
-    .delete(users)
-    .where(eq(users.id, userId));
-
+export const logout = async (userId) => {
   return true;
 };
 

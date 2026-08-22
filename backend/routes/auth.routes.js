@@ -3,6 +3,7 @@ import express from "express";
 import {
   signupController,
   loginController,
+  logoutController,
   meController,
 } from "../controllers/auth.controller.js";
 
@@ -28,10 +29,10 @@ router.get(
   meController
 );
 
-router.delete(
-  "/me",
+router.post(
+  "/logout",
   authMiddleware,
-  meController
+  logoutController
 );
 
 export default router;

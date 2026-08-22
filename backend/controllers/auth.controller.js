@@ -1,8 +1,8 @@
 import {
   signup,
   login,
+  logout,
   getCurrentUser,
-  deleteAccount,
 } from "../services/auth.service.js";
 
 export const signupController = async (req, res) => {
@@ -11,7 +11,7 @@ export const signupController = async (req, res) => {
       name,
       email,
       password,
-    } = req.body;
+    } = req.body || {};
 
     if (!name || !email || !password) {
       return res.status(400).json({
@@ -48,7 +48,7 @@ export const loginController = async (req, res) => {
     const {
       email,
       password,
-    } = req.body;
+    } = req.body || {};
 
     if (!email || !password) {
       return res.status(400).json({
@@ -88,20 +88,9 @@ export const meController = async (req, res) => {
   }
 };
 
-export const deleteAccountController = async (req, res) => {
+export const logoutController = async (req, res) => {
   try {
-    const { password } = req.body;
-
-    if (!password) {
-      return res.status(400).json({
-        message: "Password is required",
-      });
-    }
-
-    await deleteAccount({
-      userId: req.user.id,
-      password,
-    });
+    await logout(req.user.id);
 
     return res.status(204).send();
   } catch (error) {
