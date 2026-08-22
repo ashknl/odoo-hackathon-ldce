@@ -28,4 +28,10 @@ router.get(
   meController
 );
 
+router.delete(
+  "/me",
+  authMiddleware,
+  meController
+);
+
 export default router;
