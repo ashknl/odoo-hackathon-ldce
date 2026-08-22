@@ -19,8 +19,8 @@ Paginated list endpoints accept `?limit=20&offset=0` and return:
 
 | Method | Route | Auth | Purpose |
 |---|---|---|---|
-| POST | `/api/auth/signup` | — | Create account |
-| POST | `/api/auth/login` | — | Login, returns bearer token |
+ token || POST | `/api/auth/signup` | — | Create account |
+| POST | `/api/auth/login` | — | Login, returns bearer
 | POST | `/api/auth/logout` | 🔒 | Invalidate current session |
 | POST | `/api/auth/forgot-password` | — | Request password reset email |
 | POST | `/api/auth/reset-password` | — | Reset password with token |

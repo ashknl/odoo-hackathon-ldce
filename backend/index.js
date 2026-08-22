@@ -10,6 +10,8 @@ import cityRoutes from "./routes/city.routes.js";
 import activityRoutes from "./routes/activity.routes.js";
 import publicRoutes from "./routes/public.routes.js";
 
+import { seedCities } from "./services/city.service.js";
+
 const app = express();
 
 const PORT = process.env.PORT || 5000;
@@ -57,6 +59,10 @@ app.use(
   "/api/public",
   publicRoutes
 );
+
+seedCities().catch((error) => {
+  console.error("Failed to seed cities:", error.message);
+});
 
 app.listen(PORT, () => {
   console.log(

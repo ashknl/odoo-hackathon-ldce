@@ -5,6 +5,7 @@ import {
   text,
   numeric,
   decimal,
+  boolean,
   index,
 } from "drizzle-orm/pg-core";
 
@@ -37,6 +38,8 @@ export const cities = pgTable(
       precision: 10,
       scale: 7,
     }),
+
+    popular: boolean("popular").default(false).notNull(),
   },
   (table) => ({
     countryRegionIdx: index("cities_country_region_idx").on(

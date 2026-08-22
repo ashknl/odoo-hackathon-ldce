@@ -1,0 +1,1 @@
+ALTER TABLE "cities" ADD COLUMN "popular" boolean DEFAULT false NOT NULL;
